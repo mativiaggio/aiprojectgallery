@@ -9,11 +9,11 @@ const resendFromEmail =
     ? `${env.APP_NAME} <${RESEND_TEST_FROM_EMAIL}>`
     : env.RESEND_FROM_EMAIL
 
-if (resendFromEmail !== env.RESEND_FROM_EMAIL) {
-  console.warn(
-    `[resend] Using ${RESEND_TEST_FROM_EMAIL} in development because RESEND_FROM_EMAIL is set to an unverified example.com address.`
-  )
-}
+// if (resendFromEmail !== env.RESEND_FROM_EMAIL) {
+//   console.warn(
+//     `[resend] Using ${RESEND_TEST_FROM_EMAIL} in development because RESEND_FROM_EMAIL is set to an unverified example.com address.`
+//   )
+// }
 
 type EmailTemplateProps = {
   ctaHref?: string

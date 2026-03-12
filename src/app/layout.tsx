@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { IBM_Plex_Mono, Instrument_Sans } from "next/font/google"
 
 import "./globals.css"
+import { AppShell } from "@/components/app-shell"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { SiteFooter } from "@/components/site-footer"
 import { SiteHeader } from "@/components/site-header"
@@ -37,11 +38,9 @@ export default function RootLayout({
         className={`${instrumentSans.variable} ${ibmPlexMono.variable} bg-background text-foreground antialiased`}
       >
         <ThemeProvider>
-          <div className="flex min-h-screen flex-col">
-            <SiteHeader />
-            <main className="flex-1">{children}</main>
-            <SiteFooter />
-          </div>
+          <AppShell publicHeader={<SiteHeader />} publicFooter={<SiteFooter />}>
+            {children}
+          </AppShell>
         </ThemeProvider>
       </body>
     </html>
