@@ -1,22 +1,37 @@
 import Link from "next/link"
 import { ArrowRightIcon } from "lucide-react"
 
-import { siteContent } from "@/content/site"
+import { ProjectImage } from "@/components/projects/project-image"
+import { PublicProjectCard } from "@/components/projects/public-project-card"
 import { LinkButton } from "@/components/link-button"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { siteContent } from "@/content/site"
 
-export function HomeLanding() {
-  const featured = siteContent.previewApps[0]
-  const secondary = siteContent.previewApps.slice(1)
+type HomeLandingProps = {
+  projects: Array<{
+    id: string
+    slug: string
+    name: string
+    shortDescription: string
+    appUrl: string
+    screenshotUrl: string | null
+    aiTools: string[]
+    tags: string[]
+    authorName: string
+    verified: boolean
+  }>
+}
+
+export function HomeLanding({ projects }: HomeLandingProps) {
+  const featuredProject = projects[0] ?? null
+  const recentProjects = projects.slice(0, 6)
 
   return (
     <div className="px-4 py-10 sm:px-6 sm:py-14">
@@ -33,8 +48,9 @@ export function HomeLanding() {
               {siteContent.home.heroNote}
             </p>
           </div>
+
           <div className="flex flex-col gap-3 sm:flex-row">
-            <LinkButton href="/contact" size="lg">
+            <LinkButton href="/submit" size="lg" animated>
               Submit your product
               <ArrowRightIcon data-icon="inline-end" />
             </LinkButton>
@@ -42,118 +58,102 @@ export function HomeLanding() {
               Read how the gallery works
             </LinkButton>
           </div>
+
           <div className="grid gap-0 border sm:grid-cols-3">
             <InfoColumn
               title="Live products"
-              description="Each listing points directly to a public production URL."
+              description="Only public launches with real URLs and usable screenshots make it into the catalog."
             />
             <InfoColumn
-              title="Model stack"
-              description="Visitors can compare which models power the product."
+              title="AI stack"
+              description="Each listing keeps the model and tooling layer close to the product story."
             />
             <InfoColumn
-              title="Platform details"
-              description="Frameworks, hosting, and tooling stay visible in one pass."
+              title="Editorial shape"
+              description="Screenshot-first cards make comparison easier than a launch feed or a raw table."
             />
           </div>
         </div>
 
         <div className="overflow-hidden border bg-card">
-          <div className="grid border-b lg:grid-cols-[minmax(0,1fr)_15rem]">
-            <div className="border-b p-5 sm:p-6 lg:border-r lg:border-b-0">
-              <div className="flex items-start justify-between gap-4">
-                <div className="max-w-sm">
-                  <div className="text-sm font-medium">Featured entry</div>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    A launch surface with enough technical context to be useful on
-                    first read.
-                  </p>
-                </div>
-                <Badge variant="outline">{featured.category}</Badge>
-              </div>
-              <div className="mt-6 border bg-panel p-5">
-                <div className="text-2xl font-semibold tracking-[-0.05em]">
-                  {featured.name}
-                </div>
-                <p className="mt-3 max-w-lg text-sm leading-7 text-muted-foreground">
-                  {featured.tagline}
-                </p>
-                <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                  <DetailRow label="Production URL" value={featured.productionUrl} />
-                  <DetailRow label="Models" value={featured.models.join(" + ")} />
-                  <DetailRow label="Platforms" value={featured.platforms.join(" · ")} />
-                  <DetailRow label="Capture style" value={featured.captureStyle} />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5 sm:p-6">
-              <div className="text-sm font-medium">Why it stands out</div>
-              <div className="mt-5 space-y-5">
-                <MetricBlock
-                  label="Category"
-                  value={featured.category}
-                  description="Positioning stays explicit instead of implied."
-                />
-                <MetricBlock
-                  label="Curator note"
-                  value={featured.curatorNote}
-                  description="The listing explains what makes the product worth studying."
-                />
-                <MetricBlock
-                  label="Review status"
-                  value={featured.statusLabel}
-                  description="Entries are edited into a consistent comparison format."
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-[minmax(0,1fr)_15rem]">
-            <div className="p-5 sm:p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="text-sm font-medium">Recently reviewed</div>
-                <div className="text-sm text-muted-foreground">
-                  {secondary.length} entries
-                </div>
-              </div>
-              <div className="mt-4 border-t">
-                {secondary.map((app, index) => (
-                  <div key={app.name}>
-                    <div className="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_11rem] sm:gap-6">
-                      <div className="min-w-0">
-                        <div className="text-base font-medium tracking-[-0.03em]">
-                          {app.name}
-                        </div>
-                        <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                          {app.tagline}
-                        </p>
-                      </div>
-                      <div className="space-y-1 text-sm text-muted-foreground sm:text-right">
-                        <div>{app.productionUrl}</div>
-                        <div>{app.models.join(" + ")}</div>
-                      </div>
-                    </div>
-                    {index < secondary.length - 1 ? <Separator /> : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-t bg-muted/25 p-5 sm:p-6 lg:border-l lg:border-t-0">
-              <div className="text-sm font-medium">Index fields</div>
-              <div className="mt-4 space-y-4">
-                {siteContent.home.indexFields.slice(0, 4).map((field) => (
-                  <div key={field.title} className="space-y-1">
-                    <div className="text-sm font-medium">{field.title}</div>
-                    <p className="text-sm leading-6 text-muted-foreground">
-                      {field.description}
+          {featuredProject ? (
+            <>
+              <div className="border-b p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="max-w-sm">
+                    <div className="text-sm font-medium">Latest published entry</div>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      A real submission from the live catalog, complete with generated preview and stack metadata.
                     </p>
                   </div>
-                ))}
+                  <Badge variant="outline">Live</Badge>
+                </div>
+                <div className="mt-6 overflow-hidden rounded-[1.1rem] border bg-panel">
+                  {featuredProject.screenshotUrl ? (
+                    <ProjectImage
+                      src={featuredProject.screenshotUrl}
+                      alt={`${featuredProject.name} screenshot`}
+                      className="w-full object-cover"
+                    />
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="grid lg:grid-cols-[minmax(0,1fr)_15rem]">
+                <div className="border-b p-5 sm:p-6 lg:border-r lg:border-b-0">
+                  <div className="text-2xl font-semibold tracking-[-0.05em]">
+                    {featuredProject.name}
+                  </div>
+                  <p className="mt-3 max-w-lg text-sm leading-7 text-muted-foreground">
+                    {featuredProject.shortDescription}
+                  </p>
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    <DetailRow label="Production URL" value={featuredProject.appUrl} />
+                    <DetailRow
+                      label="AI tools"
+                      value={featuredProject.aiTools.join(" + ") || "Stack pending"}
+                    />
+                    <DetailRow
+                      label="Tags"
+                      value={featuredProject.tags.join(" · ") || "Gallery"}
+                    />
+                    <DetailRow label="Author" value={featuredProject.authorName} />
+                  </div>
+                </div>
+
+                <div className="p-5 sm:p-6">
+                  <div className="text-sm font-medium">Why it reads well</div>
+                  <div className="mt-5 space-y-5">
+                    <MetricBlock
+                      label="Preview first"
+                      value="Screenshot-led card"
+                      description="People can judge launch quality before they commit to another click."
+                    />
+                    <MetricBlock
+                      label="Context"
+                      value="Tools + tags"
+                      description="The technical layer stays attached to the project instead of buried in a detail drawer."
+                    />
+                    <MetricBlock
+                      label="Visibility"
+                      value="Published only"
+                      description="Processing and failed submissions stay out of public view until the listing is complete."
+                    />
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="p-6 sm:p-8">
+              <div className="max-w-lg">
+                <div className="text-sm font-medium">The gallery is ready</div>
+                <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                  The public grid turns on as soon as the first submission finishes its screenshot pipeline.
+                  Submit a live product to seed the catalog and define the early quality bar.
+                </p>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
@@ -164,8 +164,7 @@ export function HomeLanding() {
               What every listing includes
             </h2>
             <p className="max-w-xl text-base leading-7 text-muted-foreground">
-              The gallery is designed to help people judge a product quickly without
-              losing the technical context that matters.
+              The gallery is designed to help people judge a product quickly without losing the technical context that matters.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -175,9 +174,7 @@ export function HomeLanding() {
                   <CardTitle>{field.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="leading-7 text-muted-foreground">
-                    {field.description}
-                  </p>
+                  <p className="leading-7 text-muted-foreground">{field.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -190,8 +187,7 @@ export function HomeLanding() {
               How submission works
             </h2>
             <p className="max-w-xl text-base leading-7 text-muted-foreground">
-              Submissions stay simple. The listing format does the work of making
-              products comparable.
+              Submissions stay simple. The listing format does the work of making products comparable.
             </p>
           </div>
           <Card>
@@ -199,19 +195,11 @@ export function HomeLanding() {
               {siteContent.featureSteps.map((step, index) => (
                 <div key={step.title}>
                   <div className="grid gap-3 py-4 sm:grid-cols-[2rem_1fr]">
-                    <div className="text-sm text-muted-foreground">
-                      0{index + 1}
-                    </div>
+                    <div className="text-sm text-muted-foreground">0{index + 1}</div>
                     <div className="flex flex-col gap-2">
-                      <div className="text-lg font-medium tracking-[-0.03em]">
-                        {step.title}
-                      </div>
-                      <p className="text-sm leading-7 text-muted-foreground">
-                        {step.description}
-                      </p>
-                      <p className="text-sm leading-7 text-muted-foreground">
-                        {step.detail}
-                      </p>
+                      <div className="text-lg font-medium tracking-[-0.03em]">{step.title}</div>
+                      <p className="text-sm leading-7 text-muted-foreground">{step.description}</p>
+                      <p className="text-sm leading-7 text-muted-foreground">{step.detail}</p>
                     </div>
                   </div>
                   {index < siteContent.featureSteps.length - 1 ? <Separator /> : null}
@@ -226,63 +214,34 @@ export function HomeLanding() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-4">
             <h2 className="text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">
-              Featured entries
+              Published projects
             </h2>
             <p className="max-w-2xl text-base leading-7 text-muted-foreground">
-              A few examples of how products appear once the product summary, stack,
-              and category data are assembled into one listing.
+              Real submissions from the database, ordered by publication time and filtered so only complete listings make the public grid.
             </p>
           </div>
           <Link
-            href="/contact"
+            href="/submit"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Start a submission
           </Link>
         </div>
-        <div className="mt-8 grid gap-5 lg:grid-cols-3">
-          {siteContent.previewApps.map((app) => (
-            <Card key={app.name}>
-              <CardHeader>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex flex-col gap-1">
-                    <CardTitle className="text-xl tracking-[-0.04em]">
-                      {app.name}
-                    </CardTitle>
-                    <CardDescription className="leading-7">
-                      {app.tagline}
-                    </CardDescription>
-                  </div>
-                  <Badge variant="outline">{app.category}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="rounded-[0.9rem] border bg-muted/40 p-4">
-                  <div className="text-sm font-medium">{app.productionUrl}</div>
-                  <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                    {app.curatorNote}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {app.models.map((model) => (
-                    <Badge key={model} variant="secondary">
-                      {model}
-                    </Badge>
-                  ))}
-                  {app.platforms.map((platform) => (
-                    <Badge key={platform} variant="outline">
-                      {platform}
-                    </Badge>
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter className="justify-between">
-                <span className="text-sm text-muted-foreground">{app.captureStyle}</span>
-                <span className="text-sm font-medium">{app.statusLabel}</span>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+
+        {recentProjects.length > 0 ? (
+          <div className="mt-8 grid gap-5 lg:grid-cols-3">
+            {recentProjects.map((project) => (
+              <PublicProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-8 rounded-[1.3rem] border border-dashed bg-muted/15 px-6 py-10">
+            <div className="text-lg font-medium tracking-[-0.03em]">No published projects yet</div>
+            <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+              The first finished submission will appear here automatically once its screenshot is captured and stored.
+            </p>
+          </div>
+        )}
       </section>
 
       <section className="mx-auto mt-24 max-w-7xl border-t pt-10">
@@ -296,8 +255,8 @@ export function HomeLanding() {
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-            <LinkButton href="/contact" size="lg">
-              Contact us
+            <LinkButton href="/submit" size="lg" animated animation="arrow">
+              Submit your product
               <ArrowRightIcon data-icon="inline-end" />
             </LinkButton>
             <LinkButton href="/pricing" variant="outline" size="lg">
@@ -310,29 +269,24 @@ export function HomeLanding() {
   )
 }
 
-type InfoColumnProps = {
-  title: string
-  description: string
-}
-
-function InfoColumn({ title, description }: InfoColumnProps) {
+function InfoColumn({ title, description }: { title: string; description: string }) {
   return (
     <div className="border-b p-5 sm:border-r sm:border-b-0 sm:p-6 sm:last:border-r-0">
       <div className="text-base font-medium tracking-[-0.03em]">{title}</div>
-      <p className="mt-3 max-w-xs text-sm leading-7 text-muted-foreground">
-        {description}
-      </p>
+      <p className="mt-3 max-w-xs text-sm leading-7 text-muted-foreground">{description}</p>
     </div>
   )
 }
 
-type MetricBlockProps = {
+function MetricBlock({
+  label,
+  value,
+  description,
+}: {
   label: string
   value: string
   description: string
-}
-
-function MetricBlock({ label, value, description }: MetricBlockProps) {
+}) {
   return (
     <div className="border-b pb-5 last:border-b-0 last:pb-0">
       <div className="text-sm text-muted-foreground">{label}</div>
@@ -342,12 +296,7 @@ function MetricBlock({ label, value, description }: MetricBlockProps) {
   )
 }
 
-type DetailRowProps = {
-  label: string
-  value: string
-}
-
-function DetailRow({ label, value }: DetailRowProps) {
+function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-1 border-t pt-4 first:border-t-0 first:pt-0">
       <div className="text-sm text-muted-foreground">{label}</div>

@@ -35,6 +35,9 @@ export const env = {
   BETTER_AUTH_URL: getRequiredEnv("BETTER_AUTH_URL"),
   RESEND_API_KEY: getRequiredEnv("RESEND_API_KEY"),
   RESEND_FROM_EMAIL: resendFromEmail,
+  UPLOADTHING_TOKEN: process.env.UPLOADTHING_TOKEN,
+  UPLOADTHING_SECRET: process.env.UPLOADTHING_SECRET,
+  UPLOADTHING_APP_ID: process.env.UPLOADTHING_APP_ID,
   APP_NAME: process.env.NEXT_PUBLIC_APP_NAME ?? "AI Project Gallery",
   NODE_ENV: nodeEnv,
 }

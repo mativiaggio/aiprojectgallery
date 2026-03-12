@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useState } from "react"
 import {
   ChevronRight,
+  LayoutGrid,
   LogIn,
   Mail,
   MenuIcon,
@@ -69,9 +70,20 @@ export function MobileNav({ authenticated = false }: { authenticated?: boolean }
               {authenticated ? (
                 <>
                   <Link
-                    href="/account"
+                    href="/dashboard"
                     onClick={() => setOpen(false)}
                     className="flex min-h-12 items-center justify-between gap-3 px-4 text-sm font-medium transition-colors hover:bg-muted"
+                  >
+                    <span className="inline-flex items-center gap-3">
+                      <LayoutGrid className="size-4 text-muted-foreground" />
+                      Dashboard
+                    </span>
+                    <ChevronRight className="size-4 text-muted-foreground" />
+                  </Link>
+                  <Link
+                    href="/dashboard/account"
+                    onClick={() => setOpen(false)}
+                    className="flex min-h-12 items-center justify-between gap-3 border-t px-4 text-sm font-medium transition-colors hover:bg-muted"
                   >
                     <span className="inline-flex items-center gap-3">
                       <UserRound className="size-4 text-muted-foreground" />
@@ -80,7 +92,7 @@ export function MobileNav({ authenticated = false }: { authenticated?: boolean }
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </Link>
                   <Link
-                    href="/contact"
+                    href="/dashboard/submissions"
                     onClick={() => setOpen(false)}
                     className="flex min-h-12 items-center justify-between gap-3 border-t px-4 text-sm font-medium transition-colors hover:bg-muted"
                   >

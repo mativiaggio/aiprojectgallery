@@ -13,10 +13,10 @@ export async function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background">
       <div className="mx-auto max-w-7xl">
-        <div className="flex h-16 items-center gap-3 px-4 sm:px-6">
+        <div className="flex h-16 items-center gap-3 px-4 sm:px-6 xl:px-none!">
           <Link href="/" className="flex min-w-0 flex-1 items-center gap-3">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-[0.8rem] bg-primary text-sm font-semibold text-primary-foreground">
-                A
+              A
             </span>
             <div className="min-w-0">
               <div className="truncate text-[0.95rem] font-semibold tracking-[-0.03em] sm:text-base">
@@ -30,25 +30,33 @@ export async function SiteHeader() {
 
           <nav className="hidden items-center gap-6 md:flex">
             {siteContent.navItems.map((item) => (
-              <Link
+              <LinkButton
                 key={item.href}
                 href={item.href}
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+                variant="ghost"
+                size="sm"
+                animated
+                animation="underline">
                 {item.label}
-              </Link>
+              </LinkButton>
             ))}
           </nav>
 
           <div className="hidden shrink-0 items-center gap-3 md:flex">
             <ThemeToggle />
             {session ? (
-              <UserDropdown
-                user={{
-                  name: session.user.name,
-                  email: session.user.email,
-                  image: session.user.image,
-                }}
-              />
+              <>
+                <LinkButton href="/dashboard" variant="outline" size="sm">
+                  Dashboard
+                </LinkButton>
+                <UserDropdown
+                  user={{
+                    name: session.user.name,
+                    email: session.user.email,
+                    image: session.user.image,
+                  }}
+                />
+              </>
             ) : (
               <>
                 <LinkButton href="/auth/sign-in" variant="outline" size="sm">

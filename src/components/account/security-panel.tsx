@@ -86,7 +86,7 @@ export function SecurityPanel({ user }: SecurityPanelProps) {
           here.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-6 py-6 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]">
+      <CardContent className="flex flex-col gap-6 py-6">
         <div className="space-y-6">
           <section className="space-y-4 rounded-lg border p-4">
             <div className="flex items-start justify-between gap-3">

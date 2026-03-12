@@ -45,7 +45,7 @@ export function SiteFooter() {
             <div className="space-y-3">
               <div className="text-sm font-semibold">Start here</div>
               <div className="flex flex-wrap gap-3">
-                <LinkButton href="/contact" size="sm">
+                <LinkButton href="/submit" size="sm">
                   Submit your launch
                 </LinkButton>
                 <LinkButton href="/about" variant="outline" size="sm">

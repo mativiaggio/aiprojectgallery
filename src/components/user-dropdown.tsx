@@ -6,6 +6,7 @@ import { useState } from "react"
 import {
   Bell,
   ChevronRight,
+  LayoutGrid,
   LogOut,
   MessageSquareMore,
   Plus,
@@ -86,22 +87,28 @@ export function UserDropdown({ user }: UserDropdownProps) {
 
         <div className="p-2">
           <MenuLink
+            icon={LayoutGrid}
+            label="Dashboard"
+            description="Workspace, projects, and submissions"
+            onSelect={() => router.push("/dashboard")}
+          />
+          <MenuLink
             icon={UserRound}
             label="Your profile"
             description="Account details and public identity"
-            onSelect={() => router.push("/account#profile")}
+            onSelect={() => router.push("/dashboard/account#profile")}
           />
           <MenuLink
             icon={Bell}
             label="Notifications"
             description="Delivery preferences and email settings"
-            onSelect={() => router.push("/account#preferences")}
+            onSelect={() => router.push("/dashboard/account#preferences")}
           />
           <MenuLink
             icon={Shield}
             label="Security"
             description="Password, verification, and 2FA"
-            onSelect={() => router.push("/account#security")}
+            onSelect={() => router.push("/dashboard/account#security")}
           />
         </div>
 
@@ -111,8 +118,8 @@ export function UserDropdown({ user }: UserDropdownProps) {
           <MenuLink
             icon={Plus}
             label="Submit a product"
-            description="Send a project for review"
-            onSelect={() => router.push("/contact")}
+            description="Open the dashboard submission area"
+            onSelect={() => router.push("/dashboard/submissions")}
           />
           <MenuLink
             icon={MessageSquareMore}
