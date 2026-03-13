@@ -21,15 +21,17 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useI18n } from "@/lib/i18n/provider"
 
 export function ResetPasswordForm({ token }: { token?: string }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
+  const { t } = useI18n()
 
   async function handleSubmit(formData: FormData) {
     if (!token) {
-      setError("The reset link is missing its token.")
+      setError(t("auth.forms.resetPassword.missingToken"))
       return
     }
 
@@ -41,7 +43,7 @@ export function ResetPasswordForm({ token }: { token?: string }) {
       const confirmPassword = String(formData.get("confirmPassword") ?? "")
 
       if (password !== confirmPassword) {
-        setError("Passwords do not match.")
+        setError(t("auth.forms.resetPassword.mismatch"))
         setIsPending(false)
         return
       }
@@ -58,7 +60,7 @@ export function ResetPasswordForm({ token }: { token?: string }) {
       router.refresh()
     } catch (caughtError) {
       setError(
-        caughtError instanceof Error ? caughtError.message : "Unable to reset password."
+        caughtError instanceof Error ? caughtError.message : t("auth.forms.resetPassword.error")
       )
     } finally {
       setIsPending(false)
@@ -68,9 +70,9 @@ export function ResetPasswordForm({ token }: { token?: string }) {
   return (
     <Card className="py-0">
       <CardHeader className="border-b py-5">
-        <CardTitle>Choose a new password</CardTitle>
+        <CardTitle>{t("auth.forms.resetPassword.cardTitle")}</CardTitle>
         <CardDescription>
-          This form only works with the signed reset token sent by email.
+          {t("auth.forms.resetPassword.cardDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent className="py-5">
@@ -80,9 +82,9 @@ export function ResetPasswordForm({ token }: { token?: string }) {
             await handleSubmit(formData)
           }}
         >
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="password">New password</FieldLabel>
+            <FieldGroup>
+              <Field>
+              <FieldLabel htmlFor="password">{t("auth.forms.resetPassword.newPassword")}</FieldLabel>
               <Input
                 id="password"
                 name="password"
@@ -93,7 +95,7 @@ export function ResetPasswordForm({ token }: { token?: string }) {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="confirmPassword">Confirm password</FieldLabel>
+              <FieldLabel htmlFor="confirmPassword">{t("auth.forms.resetPassword.confirmPassword")}</FieldLabel>
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -103,14 +105,14 @@ export function ResetPasswordForm({ token }: { token?: string }) {
                 required
               />
               <FieldDescription>
-                After the update you can sign in again from the regular login page.
+                {t("auth.forms.resetPassword.fieldDescription")}
               </FieldDescription>
             </Field>
           </FieldGroup>
           {error ? <FieldError>{error}</FieldError> : null}
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button type="submit" size="lg" disabled={isPending}>
-              {isPending ? "Updating..." : "Update password"}
+              {isPending ? t("auth.forms.resetPassword.pending") : t("auth.forms.resetPassword.submit")}
             </Button>
             <Button
               render={<Link href="/auth/sign-in" />}
@@ -118,7 +120,7 @@ export function ResetPasswordForm({ token }: { token?: string }) {
               variant="outline"
               size="lg"
             >
-              Back to sign in
+              {t("auth.forms.resetPassword.back")}
             </Button>
           </div>
         </form>

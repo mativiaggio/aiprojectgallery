@@ -1,12 +1,14 @@
 import { after, NextResponse } from "next/server"
 
 import {
-  getProjectForOwner,
+  getProjectForWorkspace,
   processProjectScreenshot,
   updateProjectForOwner,
-  deleteProjectForOwner,
+  deleteProjectForWorkspace,
 } from "@/lib/projects/service"
+import { getProjectActor } from "@/lib/organizations/service"
 import type { ProjectUpdatePayload } from "@/lib/projects/types"
+import { analyzeProjectResearch } from "@/lib/research/service"
 import { getSession } from "@/lib/session"
 
 export const runtime = "nodejs"
@@ -27,8 +29,20 @@ export async function GET(
     )
   }
 
+  const actor = await getProjectActor()
+
+  if (!actor) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message: "Choose an active organization before opening projects.",
+      },
+      { status: 409 }
+    )
+  }
+
   const { projectId } = await context.params
-  const project = await getProjectForOwner(projectId, session.user.id)
+  const project = await getProjectForWorkspace(projectId, actor)
 
   if (!project) {
     return NextResponse.json(
@@ -50,6 +64,7 @@ export async function GET(
       screenshotUrl: project.screenshotUrl,
       processingError: project.processingError,
       verified: project.verified,
+      canManage: project.canManage,
     },
   })
 }
@@ -70,17 +85,32 @@ export async function PATCH(
     )
   }
 
-  const { projectId } = await context.params
-  const body = (await request.json()) as ProjectUpdatePayload
-  const result = await updateProjectForOwner(projectId, session.user.id, body)
+  const actor = await getProjectActor()
 
-  if (!result) {
+  if (!actor) {
     return NextResponse.json(
       {
         ok: false,
-        message: "Project not found.",
+        message: "Choose an active organization before managing projects.",
       },
-      { status: 404 }
+      { status: 409 }
+    )
+  }
+
+  const { projectId } = await context.params
+  const body = (await request.json()) as ProjectUpdatePayload
+  const result = await updateProjectForOwner(projectId, actor, body)
+
+  if ("error" in result) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message:
+          result.error === "forbidden"
+            ? "You do not have permission to edit this project."
+            : "Project not found.",
+      },
+      { status: result.error === "forbidden" ? 403 : 404 }
     )
   }
 
@@ -90,6 +120,7 @@ export async function PATCH(
 
   if (result.appUrlChanged) {
     after(async () => {
+      await analyzeProjectResearch(projectId).catch(() => null)
       await processProjectScreenshot(projectId)
     })
   }
@@ -123,16 +154,31 @@ export async function DELETE(
     )
   }
 
-  const { projectId } = await context.params
-  const result = await deleteProjectForOwner(projectId, session.user.id)
+  const actor = await getProjectActor()
 
-  if (!result) {
+  if (!actor) {
     return NextResponse.json(
       {
         ok: false,
-        message: "Project not found.",
+        message: "Choose an active organization before managing projects.",
       },
-      { status: 404 }
+      { status: 409 }
+    )
+  }
+
+  const { projectId } = await context.params
+  const result = await deleteProjectForWorkspace(projectId, actor)
+
+  if ("error" in result) {
+    return NextResponse.json(
+      {
+        ok: false,
+        message:
+          result.error === "forbidden"
+            ? "You do not have permission to delete this project."
+            : "Project not found.",
+      },
+      { status: result.error === "forbidden" ? 403 : 404 }
     )
   }
 

@@ -1,12 +1,17 @@
 import type { ReactNode } from "react"
 
+import { getI18n } from "@/lib/i18n/server"
+
 type AuthShellProps = {
   title: string
   description: string
   children: ReactNode
 }
 
-export function AuthShell({ title, description, children }: AuthShellProps) {
+export async function AuthShell({ title, description, children }: AuthShellProps) {
+  const { t } = await getI18n()
+  const notes = t<Array<{ title: string; description: string }>>("authShell.notes")
+
   return (
     <div className="px-4 py-10 sm:px-6 sm:py-14">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-start">
@@ -20,18 +25,9 @@ export function AuthShell({ title, description, children }: AuthShellProps) {
             </p>
           </div>
           <div className="grid gap-0 border-y sm:grid-cols-3">
-            <AuthNote
-              title="Email + password"
-              description="First-party credentials with verification and reset flows."
-            />
-            <AuthNote
-              title="Two-factor ready"
-              description="Authenticator apps, email OTP, and backup codes."
-            />
-            <AuthNote
-              title="Profile controls"
-              description="Identity, preferences, and account security in one place."
-            />
+            {notes.map((note) => (
+              <AuthNote key={note.title} title={note.title} description={note.description} />
+            ))}
           </div>
         </section>
         <section>{children}</section>

@@ -123,7 +123,7 @@ export function SecurityPanel({ user }: SecurityPanelProps) {
                       method: "POST",
                       body: {
                         email: user.email,
-                        callbackURL: "/account?verified=1",
+                        callbackURL: "/dashboard/account?verified=1",
                       },
                     })
 

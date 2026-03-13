@@ -6,6 +6,14 @@ import type {
   SubmissionFieldErrors,
   SubmissionPayload,
 } from "@/lib/projects/types"
+import {
+  BUYER_TYPE_OPTIONS,
+  DEPLOYMENT_SURFACE_OPTIONS,
+  INTERACTION_MODEL_OPTIONS,
+  MODEL_VENDOR_MIX_OPTIONS,
+  PRICING_VISIBILITY_OPTIONS,
+  PRIMARY_USE_CASE_OPTIONS,
+} from "@/lib/research/constants"
 
 const RESERVED_HOST_SUFFIXES = [
   ".internal",
@@ -25,11 +33,17 @@ type ValidationResult =
         shortDescription: string
         appUrl: string
         normalizedAppUrl: string
-        repositoryUrl: string | null
-        aiTools: string[]
-        tags: string[]
-      }
+      repositoryUrl: string | null
+      aiTools: string[]
+      tags: string[]
+      primaryUseCase: string | null
+      buyerType: string | null
+      interactionModel: string | null
+      pricingVisibility: string | null
+      deploymentSurface: string | null
+      modelVendorMix: string | null
     }
+  }
   | {
       ok: false
       message: string
@@ -61,6 +75,21 @@ async function validateProjectPayload(
   const repositoryUrl = payload.repositoryUrl?.trim() ?? ""
   const aiTools = normalizeTokens(payload.aiTools, 8)
   const tags = normalizeTokens(payload.tags, 8)
+  const primaryUseCase = normalizeOption(payload.primaryUseCase, PRIMARY_USE_CASE_OPTIONS)
+  const buyerType = normalizeOption(payload.buyerType, BUYER_TYPE_OPTIONS)
+  const interactionModel = normalizeOption(
+    payload.interactionModel,
+    INTERACTION_MODEL_OPTIONS
+  )
+  const pricingVisibility = normalizeOption(
+    payload.pricingVisibility,
+    PRICING_VISIBILITY_OPTIONS
+  )
+  const deploymentSurface = normalizeOption(
+    payload.deploymentSurface,
+    DEPLOYMENT_SURFACE_OPTIONS
+  )
+  const modelVendorMix = normalizeOption(payload.modelVendorMix, MODEL_VENDOR_MIX_OPTIONS)
   const fieldErrors: SubmissionFieldErrors = {}
 
   if (name.length < 2 || name.length > 80) {
@@ -78,6 +107,30 @@ async function validateProjectPayload(
 
   if (tags.length > 0 && tags.some((tag) => tag.length < 2)) {
     fieldErrors.tags = "Tags should be at least 2 characters long."
+  }
+
+  if (payload.primaryUseCase && !primaryUseCase) {
+    fieldErrors.primaryUseCase = "Choose a valid primary use case."
+  }
+
+  if (payload.buyerType && !buyerType) {
+    fieldErrors.buyerType = "Choose a valid buyer type."
+  }
+
+  if (payload.interactionModel && !interactionModel) {
+    fieldErrors.interactionModel = "Choose a valid interaction model."
+  }
+
+  if (payload.pricingVisibility && !pricingVisibility) {
+    fieldErrors.pricingVisibility = "Choose a valid pricing visibility option."
+  }
+
+  if (payload.deploymentSurface && !deploymentSurface) {
+    fieldErrors.deploymentSurface = "Choose a valid deployment surface."
+  }
+
+  if (payload.modelVendorMix && !modelVendorMix) {
+    fieldErrors.modelVendorMix = "Choose a valid model vendor mix."
   }
 
   let normalizedAppUrl: string | null = null
@@ -121,6 +174,12 @@ async function validateProjectPayload(
       repositoryUrl: normalizedRepositoryUrl,
       aiTools,
       tags,
+      primaryUseCase,
+      buyerType,
+      interactionModel,
+      pricingVisibility,
+      deploymentSurface,
+      modelVendorMix,
     },
   }
 }
@@ -144,7 +203,20 @@ function normalizeTokens(values: string[], maxItems: number) {
     .slice(0, maxItems)
 }
 
-async function normalizePublicUrl(
+function normalizeOption<const T extends readonly string[]>(
+  value: string | null | undefined,
+  options: T
+) {
+  if (!value?.trim()) {
+    return null
+  }
+
+  const normalized = value.trim()
+
+  return options.includes(normalized as T[number]) ? normalized : null
+}
+
+export async function normalizePublicUrl(
   rawValue: string,
   options: {
     allowHttp?: boolean

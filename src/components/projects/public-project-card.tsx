@@ -1,5 +1,7 @@
 import { ExternalLink, UserRound } from "lucide-react"
 
+import { translateText } from "@/lib/i18n/dynamic-translation"
+import { getI18n } from "@/lib/i18n/server"
 import { ProjectImage } from "@/components/projects/project-image"
 import { ProjectVerifiedBadge } from "@/components/projects/project-verified-badge"
 import { LinkButton } from "@/components/link-button"
@@ -26,7 +28,17 @@ type PublicProjectCardProps = {
   }
 }
 
-export function PublicProjectCard({ project }: PublicProjectCardProps) {
+export async function PublicProjectCard({ project }: PublicProjectCardProps) {
+  const { locale, t } = await getI18n()
+  const translatedDescription =
+    await translateText({
+      entityType: "project",
+      entityId: project.slug,
+      field: "shortDescription",
+      locale,
+      value: project.shortDescription,
+    }) ?? project.shortDescription
+
   return (
     <Card className="h-full rounded-[1.35rem] py-0 shadow-none">
       <div className="border-b border-border/70">
@@ -49,12 +61,12 @@ export function PublicProjectCard({ project }: PublicProjectCardProps) {
         </div>
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="text-xl tracking-[-0.05em]">{project.name}</CardTitle>
-          {project.verified ? <ProjectVerifiedBadge label="Verified Project" /> : null}
+          {project.verified ? <ProjectVerifiedBadge label={t("publicPages.publicProjectCard.verifiedProject")} /> : null}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4 pb-5">
-        <p className="text-sm leading-7 text-muted-foreground">{project.shortDescription}</p>
+        <p className="text-sm leading-7 text-muted-foreground">{translatedDescription}</p>
 
         <div className="flex flex-wrap gap-2">
           {project.aiTools.map((tool) => (
@@ -72,10 +84,10 @@ export function PublicProjectCard({ project }: PublicProjectCardProps) {
         </div>
         <div className="flex items-center gap-2">
           <LinkButton href={`/projects/${project.slug}`} variant="outline" size="sm">
-            View details
+            {t("common.viewDetails")}
           </LinkButton>
           <LinkButton href={project.appUrl} target="_blank" rel="noreferrer" size="sm" animated>
-            Visit app
+            {t("common.visitApp")}
             <ExternalLink data-icon="inline-end" />
           </LinkButton>
         </div>

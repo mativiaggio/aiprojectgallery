@@ -171,6 +171,26 @@ a {
   }
 }
 
+@keyframes ai-column-up {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(calc(-1 * var(--column-shift, 0px)));
+  }
+}
+
+@keyframes ai-column-down {
+  from {
+    transform: translateY(calc(-1 * var(--column-shift, 0px)));
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
 .glass-surface {
   background: color-mix(in srgb, var(--card) 84%, transparent);
   backdrop-filter: blur(18px);
@@ -196,13 +216,30 @@ a {
   animation: pulse-soft 5s ease-in-out infinite;
 }
 
+.ai-column-track {
+  display: flex;
+  flex-direction: column;
+  gap: var(--column-gap, 16px);
+  will-change: transform;
+}
+
+.ai-column-track--up {
+  animation: ai-column-up var(--column-duration, 24s) linear infinite;
+}
+
+.ai-column-track--down {
+  animation: ai-column-down var(--column-duration, 24s) linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
 
   .float-slow,
-  .pulse-soft {
+  .pulse-soft,
+  .ai-column-track--up,
+  .ai-column-track--down {
     animation: none;
   }
 }

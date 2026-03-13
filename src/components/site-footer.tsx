@@ -1,9 +1,13 @@
 import Link from "next/link"
 
-import { siteContent } from "@/content/site"
+import { getSiteContent } from "@/content/site"
+import { getI18n } from "@/lib/i18n/server"
 import { LinkButton } from "@/components/link-button"
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const { locale, t } = await getI18n()
+  const siteContent = getSiteContent(locale)
+
   return (
     <footer className="border-t">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -23,13 +27,12 @@ export function SiteFooter() {
               </div>
             </div>
             <p className="max-w-xl text-sm leading-7 text-muted-foreground">
-              AI Project Gallery is built for people who want to see strong AI
-              products with enough context to understand why they work.
+              {t("footer.description")}
             </p>
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-1">
             <div className="space-y-3">
-              <div className="text-sm font-semibold">Explore</div>
+              <div className="text-sm font-semibold">{t("footer.explore")}</div>
               <div className="flex flex-wrap gap-4">
                 {siteContent.navItems.map((item) => (
                   <Link
@@ -43,21 +46,24 @@ export function SiteFooter() {
               </div>
             </div>
             <div className="space-y-3">
-              <div className="text-sm font-semibold">Start here</div>
+              <div className="text-sm font-semibold">{t("footer.startHere")}</div>
               <div className="flex flex-wrap gap-3">
                 <LinkButton href="/submit" size="sm">
-                  Submit your launch
+                  {t("common.submitLaunch")}
+                </LinkButton>
+                <LinkButton href="/research" variant="outline" size="sm">
+                  {t("common.research")}
                 </LinkButton>
                 <LinkButton href="/about" variant="outline" size="sm">
-                  Read the vision
+                  {t("footer.readVision")}
                 </LinkButton>
               </div>
             </div>
           </div>
         </div>
         <div className="mt-8 flex flex-col gap-2 border-t pt-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-          <span>Editorial by default. Free to explore.</span>
-          <span>Launch quality, product clarity, and stack transparency.</span>
+          <span>{t("footer.editorial")}</span>
+          <span>{t("footer.quality")}</span>
         </div>
       </div>
     </footer>

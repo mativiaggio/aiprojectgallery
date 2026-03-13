@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
+import { ProjectStructuredFields } from "@/components/projects/project-structured-fields"
 import { TokenField } from "@/components/projects/token-field"
 import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
@@ -23,6 +24,12 @@ type EditableProject = {
   repositoryUrl: string | null
   aiTools: string[]
   tags: string[]
+  primaryUseCase: string | null
+  buyerType: string | null
+  interactionModel: string | null
+  pricingVisibility: string | null
+  deploymentSurface: string | null
+  modelVendorMix: string | null
 }
 
 export function ProjectEditForm({ project }: { project: EditableProject }) {
@@ -34,6 +41,12 @@ export function ProjectEditForm({ project }: { project: EditableProject }) {
     repositoryUrl: project.repositoryUrl ?? "",
     aiTools: project.aiTools,
     tags: project.tags,
+    primaryUseCase: project.primaryUseCase ?? undefined,
+    buyerType: project.buyerType ?? undefined,
+    interactionModel: project.interactionModel ?? undefined,
+    pricingVisibility: project.pricingVisibility ?? undefined,
+    deploymentSurface: project.deploymentSurface ?? undefined,
+    modelVendorMix: project.modelVendorMix ?? undefined,
   })
   const [fieldErrors, setFieldErrors] = useState<SubmissionFieldErrors>({})
   const [message, setMessage] = useState<string | null>(null)
@@ -101,6 +114,12 @@ export function ProjectEditForm({ project }: { project: EditableProject }) {
       repositoryUrl: payload.project.repositoryUrl ?? "",
       aiTools: payload.project.aiTools,
       tags: payload.project.tags,
+      primaryUseCase: payload.project.primaryUseCase ?? undefined,
+      buyerType: payload.project.buyerType ?? undefined,
+      interactionModel: payload.project.interactionModel ?? undefined,
+      pricingVisibility: payload.project.pricingVisibility ?? undefined,
+      deploymentSurface: payload.project.deploymentSurface ?? undefined,
+      modelVendorMix: payload.project.modelVendorMix ?? undefined,
     })
     setMessage(payload.message)
     router.refresh()
@@ -179,6 +198,19 @@ export function ProjectEditForm({ project }: { project: EditableProject }) {
         onChange={(value) => updateField("tags", value)}
         suggestions={PROJECT_TAG_SUGGESTIONS}
         error={fieldErrors.tags}
+      />
+
+      <ProjectStructuredFields
+        value={{
+          primaryUseCase: form.primaryUseCase,
+          buyerType: form.buyerType,
+          interactionModel: form.interactionModel,
+          pricingVisibility: form.pricingVisibility,
+          deploymentSurface: form.deploymentSurface,
+          modelVendorMix: form.modelVendorMix,
+        }}
+        onChange={updateField}
+        errors={fieldErrors}
       />
 
       {message ? (

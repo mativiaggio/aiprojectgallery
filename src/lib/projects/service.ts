@@ -5,9 +5,16 @@ import { and, desc, eq, isNotNull, ne } from "drizzle-orm"
 import { UTApi } from "uploadthing/server"
 
 import { db } from "@/lib/db"
-import { projects, user } from "@/lib/db/schema"
+import { projectSnapshots, projects, user } from "@/lib/db/schema"
 import { env } from "@/lib/env"
+import { canManageProject } from "@/lib/organizations/access"
 import { captureAndUploadScreenshot } from "@/lib/projects/screenshot"
+import {
+  getProjectCollectionSummary,
+  getProjectFeatureGapSummary,
+  queueProjectResearchAnalysis,
+  runProjectResearchNow,
+} from "@/lib/research/service"
 import {
   PROJECT_STATUS,
   type ProjectOwnershipState,
@@ -32,16 +39,27 @@ const projectBaseSelection = {
   repositoryUrl: projects.repositoryUrl,
   aiTools: projects.aiTools,
   tags: projects.tags,
+  primaryUseCase: projects.primaryUseCase,
+  buyerType: projects.buyerType,
+  interactionModel: projects.interactionModel,
+  pricingVisibility: projects.pricingVisibility,
+  deploymentSurface: projects.deploymentSurface,
+  modelVendorMix: projects.modelVendorMix,
   status: projects.status,
   screenshotUrl: projects.screenshotUrl,
   screenshotFileKey: projects.screenshotFileKey,
   screenshotCapturedAt: projects.screenshotCapturedAt,
   processingError: projects.processingError,
   verified: projects.verified,
+  credibilityScore: projects.credibilityScore,
+  credibilitySummary: projects.credibilitySummary,
+  lastAnalyzedAt: projects.lastAnalyzedAt,
+  nextPulseDueAt: projects.nextPulseDueAt,
   createdAt: projects.createdAt,
   updatedAt: projects.updatedAt,
   publishedAt: projects.publishedAt,
-  userId: projects.userId,
+  organizationId: projects.organizationId,
+  createdByUserId: projects.createdByUserId,
   authorName: user.name,
   authorEmail: user.email,
 }
@@ -66,35 +84,69 @@ type ProjectListItem = {
   repositoryUrl: string | null
   aiTools: string[]
   tags: string[]
+  primaryUseCase: string | null
+  buyerType: string | null
+  interactionModel: string | null
+  pricingVisibility: string | null
+  deploymentSurface: string | null
+  modelVendorMix: string | null
   status: string
   screenshotUrl: string | null
   screenshotFileKey: string | null
   screenshotCapturedAt: Date | null
   processingError: string | null
   verified: boolean
+  credibilityScore: number
+  credibilitySummary: string | null
+  lastAnalyzedAt: Date | null
+  nextPulseDueAt: Date | null
   createdAt: Date
   updatedAt: Date
   publishedAt: Date | null
-  userId: string
+  organizationId: string
+  createdByUserId: string
   authorName: string
   authorEmail: string
+  collectionCount: number
+  linkedCollections: Array<{
+    id: string
+    name: string
+    containsProject: boolean
+  }>
+  featureGapCount: number
+  topFeatureGap: {
+    title: string
+    impact: string
+    confidence: number
+  } | null
+  canManage: boolean
 }
 
-type OwnerProject = ProjectListItem & ProjectOwnershipState
+type WorkspaceProject = ProjectListItem & ProjectOwnershipState
 
 type ProjectUpdateResult = {
-  project: OwnerProject
+  project: WorkspaceProject
   appUrlChanged: boolean
   hostnameChanged: boolean
 }
 
 type ProjectVerificationResult = {
-  project: OwnerProject
+  project: WorkspaceProject
   message: string
 }
 
-export async function createSubmissionForUser(
-  userId: string,
+type ProjectActor = {
+  organizationId: string
+  userId: string
+  role: string
+}
+
+type ProjectAccessError = {
+  error: "not-found" | "forbidden"
+}
+
+export async function createSubmissionForOrganization(
+  actor: ProjectActor,
   payload: SubmissionPayload
 ): Promise<SubmissionResult> {
   const validation = await validateSubmissionPayload(payload)
@@ -136,6 +188,12 @@ export async function createSubmissionForUser(
     repositoryUrl: validation.data.repositoryUrl,
     aiTools: validation.data.aiTools,
     tags: validation.data.tags,
+    primaryUseCase: validation.data.primaryUseCase,
+    buyerType: validation.data.buyerType,
+    interactionModel: validation.data.interactionModel,
+    pricingVisibility: validation.data.pricingVisibility,
+    deploymentSurface: validation.data.deploymentSurface,
+    modelVendorMix: validation.data.modelVendorMix,
     status: PROJECT_STATUS.processing,
     processingError: null,
     verificationToken: generateVerificationToken(),
@@ -143,7 +201,8 @@ export async function createSubmissionForUser(
     verificationError: null,
     createdAt: now,
     updatedAt: now,
-    userId,
+    organizationId: actor.organizationId,
+    createdByUserId: actor.userId,
   })
 
   revalidateProjectSurfaces({ slug, projectId })
@@ -161,11 +220,34 @@ export async function createSubmissionForUser(
   }
 }
 
-export async function retryProjectProcessing(projectId: string, userId: string) {
-  const currentProject = await getProjectForOwner(projectId, userId)
+export async function retryProjectProcessing(
+  projectId: string,
+  actor: ProjectActor
+): Promise<
+  | ProjectAccessError
+  | {
+      id: string
+      slug: string
+      name: string
+      status: string
+      screenshotUrl: string | null
+      processingError: string | null
+      verified: boolean
+      canManage: boolean
+    }
+> {
+  const currentProject = await getProjectForWorkspace(projectId, actor)
 
   if (!currentProject) {
-    return null
+    return {
+      error: "not-found",
+    }
+  }
+
+  if (!currentProject.canManage) {
+    return {
+      error: "forbidden",
+    }
   }
 
   await db
@@ -175,7 +257,12 @@ export async function retryProjectProcessing(projectId: string, userId: string) 
       processingError: null,
       updatedAt: new Date(),
     })
-    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+    .where(
+      and(
+        eq(projects.id, projectId),
+        eq(projects.organizationId, actor.organizationId)
+      )
+    )
 
   revalidateProjectSurfaces({
     slug: currentProject.slug,
@@ -190,18 +277,27 @@ export async function retryProjectProcessing(projectId: string, userId: string) 
     screenshotUrl: currentProject.screenshotUrl,
     processingError: null,
     verified: currentProject.verified,
+    canManage: true,
   }
 }
 
 export async function updateProjectForOwner(
   projectId: string,
-  userId: string,
+  actor: ProjectActor,
   payload: ProjectUpdatePayload
-): Promise<ProjectUpdateResult | FailedSubmissionResult | null> {
-  const currentProject = await getProjectForOwner(projectId, userId)
+): Promise<ProjectUpdateResult | FailedSubmissionResult | ProjectAccessError> {
+  const currentProject = await getProjectForWorkspace(projectId, actor)
 
   if (!currentProject) {
-    return null
+    return {
+      error: "not-found",
+    }
+  }
+
+  if (!currentProject.canManage) {
+    return {
+      error: "forbidden",
+    }
   }
 
   const validation = await validateProjectUpdatePayload(payload)
@@ -250,6 +346,12 @@ export async function updateProjectForOwner(
       repositoryUrl: validation.data.repositoryUrl,
       aiTools: validation.data.aiTools,
       tags: validation.data.tags,
+      primaryUseCase: validation.data.primaryUseCase,
+      buyerType: validation.data.buyerType,
+      interactionModel: validation.data.interactionModel,
+      pricingVisibility: validation.data.pricingVisibility,
+      deploymentSurface: validation.data.deploymentSurface,
+      modelVendorMix: validation.data.modelVendorMix,
       ...(appUrlChanged
         ? {
             status: PROJECT_STATUS.processing,
@@ -267,12 +369,19 @@ export async function updateProjectForOwner(
         : {}),
       updatedAt: new Date(),
     })
-    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+    .where(
+      and(
+        eq(projects.id, projectId),
+        eq(projects.organizationId, actor.organizationId)
+      )
+    )
 
-  const updatedProject = await getProjectForOwner(projectId, userId)
+  const updatedProject = await getProjectForWorkspace(projectId, actor)
 
   if (!updatedProject) {
-    return null
+    return {
+      error: "not-found",
+    }
   }
 
   revalidateProjectSurfaces({
@@ -287,18 +396,41 @@ export async function updateProjectForOwner(
   }
 }
 
-export async function deleteProjectForOwner(projectId: string, userId: string) {
-  const currentProject = await getProjectForOwner(projectId, userId)
+export async function deleteProjectForWorkspace(
+  projectId: string,
+  actor: ProjectActor
+): Promise<
+  | ProjectAccessError
+  | {
+      id: string
+      slug: string
+      name: string
+    }
+> {
+  const currentProject = await getProjectForWorkspace(projectId, actor)
 
   if (!currentProject) {
-    return null
+    return {
+      error: "not-found",
+    }
   }
 
-  await deleteScreenshotFile(currentProject.screenshotFileKey)
+  if (!currentProject.canManage) {
+    return {
+      error: "forbidden",
+    }
+  }
+
+  await deleteProjectScreenshotFiles(projectId, currentProject.screenshotFileKey)
 
   await db
     .delete(projects)
-    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+    .where(
+      and(
+        eq(projects.id, projectId),
+        eq(projects.organizationId, actor.organizationId)
+      )
+    )
 
   revalidateProjectSurfaces({
     slug: currentProject.slug,
@@ -314,12 +446,20 @@ export async function deleteProjectForOwner(projectId: string, userId: string) {
 
 export async function verifyProjectOwnership(
   projectId: string,
-  userId: string
-): Promise<ProjectVerificationResult | null> {
-  const currentProject = await getProjectForOwner(projectId, userId)
+  actor: ProjectActor
+): Promise<ProjectVerificationResult | ProjectAccessError> {
+  const currentProject = await getProjectForWorkspace(projectId, actor)
 
   if (!currentProject) {
-    return null
+    return {
+      error: "not-found",
+    }
+  }
+
+  if (!currentProject.canManage) {
+    return {
+      error: "forbidden",
+    }
   }
 
   const now = new Date()
@@ -335,7 +475,12 @@ export async function verifyProjectOwnership(
         verificationError: null,
         updatedAt: now,
       })
-      .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+      .where(
+        and(
+          eq(projects.id, projectId),
+          eq(projects.organizationId, actor.organizationId)
+        )
+      )
   } else {
     await db
       .update(projects)
@@ -345,13 +490,20 @@ export async function verifyProjectOwnership(
         verificationError: verificationOutcome.message,
         updatedAt: now,
       })
-      .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+      .where(
+        and(
+          eq(projects.id, projectId),
+          eq(projects.organizationId, actor.organizationId)
+        )
+      )
   }
 
-  const updatedProject = await getProjectForOwner(projectId, userId)
+  const updatedProject = await getProjectForWorkspace(projectId, actor)
 
   if (!updatedProject) {
-    return null
+    return {
+      error: "not-found",
+    }
   }
 
   revalidateProjectSurfaces({
@@ -389,8 +541,6 @@ export async function processProjectScreenshot(projectId: string) {
       slug: currentProject.slug,
     })
 
-    await deleteScreenshotFile(currentProject.screenshotFileKey)
-
     await db
       .update(projects)
       .set({
@@ -403,6 +553,9 @@ export async function processProjectScreenshot(projectId: string) {
         updatedAt: new Date(),
       })
       .where(eq(projects.id, projectId))
+
+    const queuedRun = await queueProjectResearchAnalysis(projectId, "initial")
+    await runProjectResearchNow(queuedRun.id, uploadedScreenshot).catch(() => null)
   } catch (error) {
     await db
       .update(projects)
@@ -420,38 +573,49 @@ export async function processProjectScreenshot(projectId: string) {
   })
 }
 
-export async function getUserProjects(userId: string) {
+export async function getOrganizationProjects(actor: ProjectActor) {
   const result = await db
     .select(projectBaseSelection)
     .from(projects)
-    .innerJoin(user, eq(projects.userId, user.id))
-    .where(eq(projects.userId, userId))
+    .innerJoin(user, eq(projects.createdByUserId, user.id))
+    .where(eq(projects.organizationId, actor.organizationId))
     .orderBy(desc(projects.createdAt))
 
-  return result.map((project) => ({
-    ...project,
-    verified: project.verified,
-  }))
+  return withResearchMetadata(result, actor)
 }
 
-export async function getProjectForOwner(projectId: string, userId: string) {
+export async function getProjectForWorkspace(
+  projectId: string,
+  actor: ProjectActor
+) {
   const result = await db
     .select(projectOwnerSelection)
     .from(projects)
-    .innerJoin(user, eq(projects.userId, user.id))
-    .where(and(eq(projects.id, projectId), eq(projects.userId, userId)))
+    .innerJoin(user, eq(projects.createdByUserId, user.id))
+    .where(
+      and(
+        eq(projects.id, projectId),
+        eq(projects.organizationId, actor.organizationId)
+      )
+    )
     .limit(1)
 
   const project = result[0]
 
-  return project ? withVerificationMetaTag(project) : null
+  if (!project) {
+    return null
+  }
+
+  const [withResearchState] = await withResearchMetadata([project], actor)
+
+  return withResearchState ? withVerificationMetaTag(withResearchState) : null
 }
 
 export async function getPublishedProjects(limit = 12) {
   return db
     .select(projectBaseSelection)
     .from(projects)
-    .innerJoin(user, eq(projects.userId, user.id))
+    .innerJoin(user, eq(projects.createdByUserId, user.id))
     .where(
       and(
         eq(projects.status, PROJECT_STATUS.published),
@@ -466,7 +630,7 @@ export async function getPublishedProjectBySlug(slug: string) {
   const result = await db
     .select(projectBaseSelection)
     .from(projects)
-    .innerJoin(user, eq(projects.userId, user.id))
+    .innerJoin(user, eq(projects.createdByUserId, user.id))
     .where(
       and(
         eq(projects.slug, slug),
@@ -480,12 +644,41 @@ export async function getPublishedProjectBySlug(slug: string) {
 }
 
 function withVerificationMetaTag(
-  project: Omit<OwnerProject, "verificationMetaTag">
-): OwnerProject {
+  project: Omit<WorkspaceProject, "verificationMetaTag">
+): WorkspaceProject {
   return {
     ...project,
     verificationMetaTag: buildVerificationMetaTag(project.verificationToken),
   }
+}
+
+async function withResearchMetadata<T extends { id: string; createdByUserId: string }>(
+  projectList: T[],
+  actor: ProjectActor
+) {
+  const projectIds = projectList.map((project) => project.id)
+  const [collectionSummary, featureGapSummary] = await Promise.all([
+    getProjectCollectionSummary(actor.userId, projectIds),
+    getProjectFeatureGapSummary(projectIds),
+  ])
+
+  return projectList.map((project) => {
+    const managementState = withManagementState(project, actor)
+    const collections = collectionSummary[project.id] ?? {
+      collectionCount: 0,
+      linkedCollections: [],
+    }
+    const featureGaps = featureGapSummary[project.id] ?? {
+      featureGapCount: 0,
+      topFeatureGap: null,
+    }
+
+    return {
+      ...managementState,
+      ...collections,
+      ...featureGaps,
+    }
+  })
 }
 
 function buildVerificationMetaTag(token: string) {
@@ -505,8 +698,12 @@ function revalidateProjectSurfaces({
 }) {
   revalidatePath("/")
   revalidatePath("/submit")
+  revalidatePath("/research")
+  revalidatePath("/compare")
+  revalidatePath("/pulse")
   revalidatePath("/dashboard")
   revalidatePath("/dashboard/projects")
+  revalidatePath("/dashboard/collections")
   revalidatePath(`/dashboard/projects/${projectId}`)
   revalidatePath("/dashboard/submissions")
   revalidatePath(`/projects/${slug}`)
@@ -522,8 +719,23 @@ async function deleteScreenshotFile(fileKey: string | null) {
     .catch(() => null)
 }
 
+async function deleteProjectScreenshotFiles(projectId: string, currentFileKey: string | null) {
+  const snapshotKeys = await db
+    .select({
+      screenshotFileKey: projectSnapshots.screenshotFileKey,
+    })
+    .from(projectSnapshots)
+    .where(eq(projectSnapshots.projectId, projectId))
+
+  const fileKeys = [...new Set([currentFileKey, ...snapshotKeys.map((entry) => entry.screenshotFileKey)].filter(Boolean))]
+
+  for (const fileKey of fileKeys) {
+    await deleteScreenshotFile(fileKey ?? null)
+  }
+}
+
 async function checkProjectOwnership(
-  project: OwnerProject
+  project: WorkspaceProject
 ): Promise<
   | {
       ok: true
@@ -652,4 +864,18 @@ function getErrorMessage(error: unknown) {
   }
 
   return "Something went wrong while generating the screenshot."
+}
+
+function withManagementState<T extends { createdByUserId: string }>(
+  project: T,
+  actor: ProjectActor
+): T & { canManage: boolean } {
+  return {
+    ...project,
+    canManage: canManageProject({
+      role: actor.role,
+      createdByUserId: project.createdByUserId,
+      userId: actor.userId,
+    }),
+  }
 }

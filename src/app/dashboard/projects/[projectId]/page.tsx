@@ -2,14 +2,21 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { ExternalLink, Github } from "lucide-react"
 
+import { ProjectSystemDossier } from "@/components/dashboard/intelligence/project-system-dossier"
+import { AnalyzeProjectButton } from "@/components/projects/analyze-project-button"
 import { DeleteProjectButton } from "@/components/projects/delete-project-button"
+import { ProjectFeatureGapPanel } from "@/components/projects/project-feature-gap-panel"
 import { ProjectEditForm } from "@/components/projects/project-edit-form"
 import { ProjectImage } from "@/components/projects/project-image"
 import { ProjectOwnershipPanel } from "@/components/projects/project-ownership-panel"
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge"
 import { ProjectVerifiedBadge } from "@/components/projects/project-verified-badge"
 import { RetryProjectButton } from "@/components/projects/retry-project-button"
+import { RunAnalysisNowButton } from "@/components/projects/run-analysis-now-button"
+import { ProjectAnalysisRunsPanel } from "@/components/research/project-analysis-runs-panel"
+import { SaveToCollectionMenu } from "@/components/research/save-to-collection-menu"
 import { LinkButton } from "@/components/link-button"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -17,9 +24,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { getProjectForOwner } from "@/lib/projects/service"
+import { getProjectForWorkspace } from "@/lib/projects/service"
 import { PROJECT_STATUS } from "@/lib/projects/types"
-import { requireSession } from "@/lib/session"
+import { getProjectSystemDossier } from "@/lib/dashboard/intelligence"
+import { requireDashboardContext } from "@/lib/organizations/service"
+import {
+  getLatestProjectAnalysisRun,
+  getProjectAnalysisRuns,
+  getProjectFeatureGaps,
+} from "@/lib/research/service"
 
 export const metadata: Metadata = {
   title: "Manage project",
@@ -30,9 +43,23 @@ export default async function DashboardProjectDetailPage({
 }: {
   params: Promise<{ projectId: string }>
 }) {
-  const session = await requireSession()
+  const context = await requireDashboardContext()
   const { projectId } = await params
-  const project = await getProjectForOwner(projectId, session.user.id)
+  const [project, featureGaps, latestAnalysisRun, analysisRuns, dossier] = await Promise.all([
+    getProjectForWorkspace(projectId, {
+      organizationId: context.activeOrganization.id,
+      userId: context.session.user.id,
+      role: context.activeMember.role,
+    }),
+    getProjectFeatureGaps(projectId),
+    getLatestProjectAnalysisRun(projectId),
+    getProjectAnalysisRuns(projectId),
+    getProjectSystemDossier(projectId, {
+      organizationId: context.activeOrganization.id,
+      userId: context.session.user.id,
+      role: context.activeMember.role,
+    }),
+  ])
 
   if (!project) {
     notFound()
@@ -75,6 +102,11 @@ export default async function DashboardProjectDetailPage({
                 {project.processingError}
               </div>
             ) : null}
+            {!project.canManage ? (
+              <div className="rounded-lg border bg-muted/20 px-4 py-3 text-sm leading-6 text-muted-foreground">
+                This project belongs to the active organization, but only owners, admins, or its creator can modify it.
+              </div>
+            ) : null}
           </CardHeader>
         </Card>
 
@@ -105,9 +137,24 @@ export default async function DashboardProjectDetailPage({
                 View public listing
               </LinkButton>
             ) : null}
-            <RetryProjectButton projectId={project.id} />
+            <SaveToCollectionMenu projectId={project.id} />
+            {project.canManage ? (
+              <AnalyzeProjectButton
+                projectId={project.id}
+                initialStatus={(latestAnalysisRun?.status as "queued" | "running" | "completed" | "failed" | null) ?? null}
+              />
+            ) : null}
+            {project.canManage ? (
+              <RunAnalysisNowButton
+                projectId={project.id}
+                disabled={latestAnalysisRun?.status === "running"}
+              />
+            ) : null}
+            {project.canManage ? <RetryProjectButton projectId={project.id} /> : null}
 
             <div className="space-y-3 border-t pt-4 text-sm">
+              <DetailRow label="Organization" value={context.activeOrganization.name} />
+              <DetailRow label="Created by" value={`${project.authorName} (${project.authorEmail})`} />
               <DetailRow label="Application URL" value={project.appUrl} />
               <DetailRow label="Repository URL" value={project.repositoryUrl ?? "Not provided"} />
               <DetailRow
@@ -122,10 +169,74 @@ export default async function DashboardProjectDetailPage({
                 label="Published"
                 value={project.publishedAt ? project.publishedAt.toLocaleString() : "Not yet"}
               />
+              <DetailRow label="Credibility" value={`${project.credibilityScore}/100`} />
+              <DetailRow
+                label="Next automatic run"
+                value={project.nextPulseDueAt ? project.nextPulseDueAt.toLocaleString() : "Not scheduled"}
+              />
+              <DetailRow
+                label="Latest analysis run"
+                value={
+                  latestAnalysisRun
+                    ? `${latestAnalysisRun.status} (${latestAnalysisRun.trigger})`
+                    : "No deep analysis run yet"
+                }
+              />
+              <DetailRow
+                label="Research summary"
+                value={project.credibilitySummary ?? "Pending after first analysis"}
+              />
+              <DetailRow
+                label="Collections"
+                value={`${project.collectionCount} linked collection${project.collectionCount === 1 ? "" : "s"}`}
+              />
             </div>
           </CardContent>
         </Card>
       </section>
+
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_360px]">
+        <ProjectFeatureGapPanel gaps={featureGaps} lastAnalyzedAt={project.lastAnalyzedAt} />
+
+        <Card className="py-0 shadow-none">
+          <CardHeader className="border-b py-5">
+            <CardTitle>Collection workflow</CardTitle>
+            <CardDescription>
+              Save this submission into private research sets, even while it is still processing.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 py-6">
+            <SaveToCollectionMenu projectId={project.id} />
+            {project.linkedCollections.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {project.linkedCollections.map((collection) => (
+                  <Badge key={collection.id} variant="outline">
+                    {collection.name}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed bg-muted/15 px-4 py-4 text-sm leading-6 text-muted-foreground">
+                This submission is not linked to any collection yet. Add it now so you can track it alongside the rest of your research set.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section>
+        <ProjectAnalysisRunsPanel
+          projectId={project.id}
+          nextPulseDueAt={project.nextPulseDueAt}
+          runs={analysisRuns}
+        />
+      </section>
+
+      {dossier ? (
+        <section>
+          <ProjectSystemDossier dossier={dossier} />
+        </section>
+      ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_360px]">
         <Card className="py-0 shadow-none">
@@ -136,17 +247,29 @@ export default async function DashboardProjectDetailPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="py-6">
-            <ProjectEditForm
-              project={{
-                id: project.id,
-                name: project.name,
-                shortDescription: project.shortDescription,
-                appUrl: project.appUrl,
-                repositoryUrl: project.repositoryUrl,
-                aiTools: project.aiTools,
-                tags: project.tags,
-              }}
-            />
+            {project.canManage ? (
+              <ProjectEditForm
+                project={{
+                  id: project.id,
+                  name: project.name,
+                  shortDescription: project.shortDescription,
+                  appUrl: project.appUrl,
+                  repositoryUrl: project.repositoryUrl,
+                  aiTools: project.aiTools,
+                  tags: project.tags,
+                  primaryUseCase: project.primaryUseCase,
+                  buyerType: project.buyerType,
+                  interactionModel: project.interactionModel,
+                  pricingVisibility: project.pricingVisibility,
+                  deploymentSurface: project.deploymentSurface,
+                  modelVendorMix: project.modelVendorMix,
+                }}
+              />
+            ) : (
+              <div className="rounded-lg border bg-muted/20 px-4 py-4 text-sm leading-6 text-muted-foreground">
+                Only owners, admins, or the member who created this project can edit its listing fields.
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -158,18 +281,24 @@ export default async function DashboardProjectDetailPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="py-6">
-            <ProjectOwnershipPanel
-              projectId={project.id}
-              initialState={{
-                verified: project.verified,
-                verificationToken: project.verificationToken,
-                verificationMetaTag: project.verificationMetaTag,
-                verifiedAt: project.verifiedAt?.toISOString() ?? null,
-                verificationLastCheckedAt:
-                  project.verificationLastCheckedAt?.toISOString() ?? null,
-                verificationError: project.verificationError,
-              }}
-            />
+            {project.canManage ? (
+              <ProjectOwnershipPanel
+                projectId={project.id}
+                initialState={{
+                  verified: project.verified,
+                  verificationToken: project.verificationToken,
+                  verificationMetaTag: project.verificationMetaTag,
+                  verifiedAt: project.verifiedAt?.toISOString() ?? null,
+                  verificationLastCheckedAt:
+                    project.verificationLastCheckedAt?.toISOString() ?? null,
+                  verificationError: project.verificationError,
+                }}
+              />
+            ) : (
+              <div className="rounded-lg border bg-muted/20 px-4 py-4 text-sm leading-6 text-muted-foreground">
+                Verification controls stay available only to owners, admins, or the member who created this project.
+              </div>
+            )}
           </CardContent>
         </Card>
       </section>
@@ -184,7 +313,13 @@ export default async function DashboardProjectDetailPage({
             </CardDescription>
           </CardHeader>
           <CardContent className="py-6">
-            <DeleteProjectButton projectId={project.id} projectName={project.name} />
+            {project.canManage ? (
+              <DeleteProjectButton projectId={project.id} projectName={project.name} />
+            ) : (
+              <div className="rounded-lg border bg-muted/20 px-4 py-4 text-sm leading-6 text-muted-foreground">
+                Deletion is restricted to owners, admins, or the member who created this project.
+              </div>
+            )}
           </CardContent>
         </Card>
       </section>
