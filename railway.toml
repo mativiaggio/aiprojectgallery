@@ -1,6 +1,6 @@
 [build]
 builder = "RAILPACK"
-buildCommand = "PLAYWRIGHT_BROWSERS_PATH=0 pnpm exec playwright install --only-shell chromium && PLAYWRIGHT_BROWSERS_PATH=0 pnpm build"
+buildCommand = "PLAYWRIGHT_BROWSERS_PATH=0 pnpm exec playwright install --with-deps chromium && PLAYWRIGHT_BROWSERS_PATH=0 pnpm build"
 watchPatterns = [
   "src/**",
   "public/**",
