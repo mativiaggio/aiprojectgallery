@@ -18,9 +18,10 @@ watchPatterns = [
 [deploy]
 runtime = "V2"
 numReplicas = 1
-sleepApplication = true
+sleepApplication = false
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+healthcheckPath = "/api/health"
 healthcheckTimeout = 60
 preDeployCommand = "pnpm db:generate && pnpm db:migrate"
-startCommand = "node .next/standalone/server.js"
+startCommand = "HOSTNAME=0.0.0.0 node .next/standalone/server.js"
