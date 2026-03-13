@@ -108,49 +108,62 @@ export function AiToolsShowcase({ projects }: HomeLandingProps) {
         </div>
       </div>
 
-      <div className="flex w-full  rounded-2xl col-span-2 border-none">
-        <div className="w-1/2 p-5 sm:p-6 ">
-          <div className="text-2xl font-semibold tracking-[-0.05em]">
-            {featuredProject.name}
+      {featuredProject ? (
+        <div className="col-span-2 flex w-full rounded-2xl border-none">
+          <div className="w-1/2 p-5 sm:p-6">
+            <div className="text-2xl font-semibold tracking-[-0.05em]">
+              {featuredProject.name}
+            </div>
+            <p className="mt-3 max-w-lg text-sm leading-7 text-muted-foreground">
+              {featuredProject.shortDescription}
+            </p>
+            <div className="mt-6 flex flex-col gap-4">
+              <DetailRow label="Production URL" value={featuredProject.appUrl} />
+              <DetailRow
+                label="AI tools"
+                value={featuredProject.aiTools.join(' + ') || 'Stack pending'}
+              />
+              <DetailRow
+                label="Tags"
+                value={featuredProject.tags.join(' · ') || 'Gallery'}
+              />
+              <DetailRow label="Author" value={featuredProject.authorName} />
+            </div>
           </div>
-          <p className="mt-3 max-w-lg text-sm leading-7 text-muted-foreground">
-            {featuredProject.shortDescription}
-          </p>
-          <div className="mt-6 gap-4 flex flex-col">
-            <DetailRow label="Production URL" value={featuredProject.appUrl} />
-            <DetailRow
-              label="AI tools"
-              value={featuredProject.aiTools.join(' + ') || 'Stack pending'}
-            />
-            <DetailRow
-              label="Tags"
-              value={featuredProject.tags.join(' · ') || 'Gallery'}
-            />
-            <DetailRow label="Author" value={featuredProject.authorName} />
-          </div>
-        </div>
 
-        <div className="w-1/2 p-5 sm:p-6">
-          <div className="text-sm font-medium">Why it reads well</div>
-          <div className="mt-5 space-y-5">
-            <MetricBlock
-              label="Preview first"
-              value="Screenshot-led card"
-              description="People can judge launch quality before they commit to another click."
-            />
-            <MetricBlock
-              label="Context"
-              value="Tools + tags"
-              description="The technical layer stays attached to the project instead of buried in a detail drawer."
-            />
-            <MetricBlock
-              label="Visibility"
-              value="Published only"
-              description="Processing and failed submissions stay out of public view until the listing is complete."
-            />
+          <div className="w-1/2 p-5 sm:p-6">
+            <div className="text-sm font-medium">Why it reads well</div>
+            <div className="mt-5 space-y-5">
+              <MetricBlock
+                label="Preview first"
+                value="Screenshot-led card"
+                description="People can judge launch quality before they commit to another click."
+              />
+              <MetricBlock
+                label="Context"
+                value="Tools + tags"
+                description="The technical layer stays attached to the project instead of buried in a detail drawer."
+              />
+              <MetricBlock
+                label="Visibility"
+                value="Published only"
+                description="Processing and failed submissions stay out of public view until the listing is complete."
+              />
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="col-span-2 border-t p-5 sm:p-6">
+          <div className="max-w-2xl">
+            <div className="text-sm font-medium">No featured project yet</div>
+            <p className="mt-3 text-sm leading-7 text-muted-foreground">
+              Once the first published submission clears screenshot processing,
+              this section will expand with the live project profile and
+              editorial breakdown.
+            </p>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
