@@ -1,5 +1,6 @@
 import { chromium as playwrightChromium } from "playwright"
 import { chromium as playwrightCoreChromium } from "playwright-core"
+import type { Browser } from "playwright-core"
 import chromium from "@sparticuz/chromium"
 import { UTApi, UTFile } from "uploadthing/server"
 
@@ -68,19 +69,90 @@ async function captureScreenshot(targetUrl: string) {
 }
 
 async function launchBrowser() {
-  if (env.NODE_ENV === "production") {
-    const executablePath = await chromium.executablePath()
+  const attemptErrors: string[] = []
 
-    return playwrightCoreChromium.launch({
-      args: chromium.args,
-      executablePath,
-      headless: true,
+  for (const attempt of getBrowserLaunchAttempts()) {
+    try {
+      return await attempt.launch()
+    } catch (error) {
+      attemptErrors.push(formatLaunchError(attempt.name, error))
+    }
+  }
+
+  throw new Error(
+    [
+      "Unable to launch Chromium for screenshot capture.",
+      ...attemptErrors,
+      "If this is Railway, prefer a standard Playwright Chromium install or set CHROMIUM_EXECUTABLE_PATH explicitly.",
+    ].join(" "),
+  )
+}
+
+function getBrowserLaunchAttempts(): Array<{
+  name: string
+  launch: () => Promise<Browser>
+}> {
+  const sharedArgs = [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+  ]
+  const attempts: Array<{
+    name: string
+    launch: () => Promise<Browser>
+  }> = []
+  const explicitExecutablePath = process.env.CHROMIUM_EXECUTABLE_PATH?.trim()
+
+  if (explicitExecutablePath) {
+    attempts.push({
+      name: "custom CHROMIUM_EXECUTABLE_PATH",
+      launch: () =>
+        playwrightCoreChromium.launch({
+          executablePath: explicitExecutablePath,
+          headless: true,
+          chromiumSandbox: false,
+          args: sharedArgs,
+        }),
     })
   }
 
-  return playwrightChromium.launch({
-    headless: true,
+  attempts.push({
+    name: env.NODE_ENV === "production" ? "Playwright bundled Chromium" : "Playwright local Chromium",
+    launch: () =>
+      playwrightChromium.launch({
+        headless: true,
+        chromiumSandbox: false,
+        args: sharedArgs,
+      }),
   })
+
+  if (env.NODE_ENV === "production") {
+    attempts.push({
+      name: "Sparticuz serverless Chromium",
+      launch: async () => {
+        chromium.setGraphicsMode = false
+
+        const executablePath = await chromium.executablePath()
+
+        return playwrightCoreChromium.launch({
+          executablePath,
+          headless: true,
+          chromiumSandbox: false,
+          args: [...new Set([...chromium.args, ...sharedArgs])],
+        })
+      },
+    })
+  }
+
+  return attempts
+}
+
+function formatLaunchError(name: string, error: unknown) {
+  if (error instanceof Error) {
+    return `${name} failed: ${error.message}`
+  }
+
+  return `${name} failed with a non-Error exception.`
 }
 
 function getUtApi() {
