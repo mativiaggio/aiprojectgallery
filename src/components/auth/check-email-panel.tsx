@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useState } from "react"
 
+import { withCallbackURL } from "@/lib/auth/callback-url"
 import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,15 +14,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { useI18n } from "@/lib/i18n/provider"
 
-export function CheckEmailPanel({ email }: { email?: string }) {
+export function CheckEmailPanel({
+  email,
+  callbackURL,
+}: {
+  email?: string
+  callbackURL: string
+}) {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
+  const { t } = useI18n()
 
   async function handleResend() {
     if (!email) {
-      setError("No email was provided for the resend flow.")
+      setError(t("auth.forms.checkEmail.missingEmail"))
       return
     }
 
@@ -34,16 +43,16 @@ export function CheckEmailPanel({ email }: { email?: string }) {
         method: "POST",
         body: {
           email,
-          callbackURL: "/account?verified=1",
+          callbackURL,
         },
       })
 
-      setNotice("Verification email sent again.")
+      setNotice(t("auth.forms.checkEmail.resendNotice"))
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Unable to resend verification."
+          : t("auth.forms.checkEmail.resendError")
       )
     } finally {
       setIsPending(false)
@@ -53,29 +62,28 @@ export function CheckEmailPanel({ email }: { email?: string }) {
   return (
     <Card className="py-0">
       <CardHeader className="border-b py-5">
-        <CardTitle>Check your email</CardTitle>
+        <CardTitle>{t("auth.forms.checkEmail.cardTitle")}</CardTitle>
         <CardDescription>
-          We sent verification and welcome emails. Use the verification link to unlock
-          the full account flow.
+          {t("auth.forms.checkEmail.cardDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 py-5">
         <div className="rounded-[0.9rem] border bg-muted/40 px-4 py-4 text-sm text-muted-foreground">
           {email
-            ? `Primary inbox: ${email}`
-            : "Your account email will receive the verification link."}
+            ? `${t("auth.forms.checkEmail.inboxPrefix")} ${email}`
+            : t("auth.forms.checkEmail.inboxFallback")}
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button type="button" size="lg" onClick={handleResend} disabled={isPending}>
-            {isPending ? "Sending..." : "Resend verification"}
+            {isPending ? t("auth.forms.checkEmail.pending") : t("auth.forms.checkEmail.resend")}
           </Button>
           <Button
-            render={<Link href="/auth/sign-in" />}
+            render={<Link href={withCallbackURL("/auth/sign-in", callbackURL)} />}
             nativeButton={false}
             variant="outline"
             size="lg"
           >
-            Go to sign in
+            {t("auth.forms.checkEmail.back")}
           </Button>
         </div>
         {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
@@ -83,7 +91,7 @@ export function CheckEmailPanel({ email }: { email?: string }) {
       </CardContent>
       <CardFooter className="justify-between">
         <span className="text-sm text-muted-foreground">
-          The verification link signs you in automatically after confirmation.
+          {t("auth.forms.checkEmail.footer")}
         </span>
       </CardFooter>
     </Card>

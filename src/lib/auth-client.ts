@@ -1,7 +1,9 @@
 "use client"
 
 import { createAuthClient } from "better-auth/react"
-import { twoFactorClient } from "better-auth/client/plugins"
+import { organizationClient, twoFactorClient } from "better-auth/client/plugins"
+
+import { readPendingCallbackURL } from "@/lib/auth/callback-url"
 
 function getAuthBaseURL() {
   if (typeof window !== "undefined") {
@@ -19,9 +21,13 @@ function getAuthBaseURL() {
 export const authClient = createAuthClient({
   baseURL: getAuthBaseURL(),
   plugins: [
+    organizationClient(),
     twoFactorClient({
       onTwoFactorRedirect: async () => {
-        window.location.assign("/auth/two-factor")
+        const callbackURL = readPendingCallbackURL()
+        window.location.assign(
+          `/auth/two-factor?callbackURL=${encodeURIComponent(callbackURL)}`
+        )
       },
     }),
   ],

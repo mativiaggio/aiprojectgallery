@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useI18n } from "@/lib/i18n/provider"
 
 type UserDropdownProps = {
   user: {
@@ -36,6 +37,7 @@ export function UserDropdown({ user }: UserDropdownProps) {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const initials = getInitials(user.name)
+  const { t } = useI18n()
 
   async function handleSignOut() {
     setIsPending(true)
@@ -59,7 +61,7 @@ export function UserDropdown({ user }: UserDropdownProps) {
         render={
           <button
             type="button"
-            aria-label="Open account menu"
+            aria-label={t("dashboard.userMenu.aria")}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/30"
           />
         }
@@ -76,10 +78,10 @@ export function UserDropdown({ user }: UserDropdownProps) {
           <Avatar name={user.name} image={user.image} initials={initials} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-sm font-semibold">{user.name}</div>
-            <div className="truncate text-sm text-muted-foreground">{user.email}</div>
+          <div className="truncate text-sm text-muted-foreground">{user.email}</div>
           </div>
           <div className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
-            Personal
+            {t("dashboard.userMenu.accountBadge")}
           </div>
         </div>
 
@@ -88,26 +90,26 @@ export function UserDropdown({ user }: UserDropdownProps) {
         <div className="p-2">
           <MenuLink
             icon={LayoutGrid}
-            label="Dashboard"
-            description="Workspace, projects, and submissions"
+            label={t("dashboard.userMenu.dashboard")}
+            description={t("dashboard.userMenu.dashboardDescription")}
             onSelect={() => router.push("/dashboard")}
           />
           <MenuLink
             icon={UserRound}
-            label="Your profile"
-            description="Account details and public identity"
+            label={t("dashboard.userMenu.profile")}
+            description={t("dashboard.userMenu.profileDescription")}
             onSelect={() => router.push("/dashboard/account#profile")}
           />
           <MenuLink
             icon={Bell}
-            label="Notifications"
-            description="Delivery preferences and email settings"
+            label={t("dashboard.userMenu.notifications")}
+            description={t("dashboard.userMenu.notificationsDescription")}
             onSelect={() => router.push("/dashboard/account#preferences")}
           />
           <MenuLink
             icon={Shield}
-            label="Security"
-            description="Password, verification, and 2FA"
+            label={t("dashboard.userMenu.security")}
+            description={t("dashboard.userMenu.securityDescription")}
             onSelect={() => router.push("/dashboard/account#security")}
           />
         </div>
@@ -117,14 +119,14 @@ export function UserDropdown({ user }: UserDropdownProps) {
         <div className="p-2">
           <MenuLink
             icon={Plus}
-            label="Submit a product"
-            description="Open the dashboard submission area"
+            label={t("dashboard.userMenu.submit")}
+            description={t("dashboard.userMenu.submitDescription")}
             onSelect={() => router.push("/dashboard/submissions")}
           />
           <MenuLink
             icon={MessageSquareMore}
-            label="Get help"
-            description="Talk to us about listings or access"
+            label={t("dashboard.userMenu.help")}
+            description={t("dashboard.userMenu.helpDescription")}
             onSelect={() => router.push("/contact")}
           />
         </div>
@@ -139,7 +141,7 @@ export function UserDropdown({ user }: UserDropdownProps) {
             className="min-h-11 rounded-lg px-3"
           >
             <LogOut className="size-4" />
-            {isPending ? "Signing out..." : "Log out"}
+            {isPending ? t("dashboard.userMenu.signingOut") : t("dashboard.userMenu.signOut")}
           </DropdownMenuItem>
         </div>
       </DropdownMenuContent>

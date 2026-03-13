@@ -2,16 +2,20 @@ import type { Metadata } from "next"
 
 import { DashboardProjectCard } from "@/components/projects/dashboard-project-card"
 import { SubmissionWizard } from "@/components/projects/submission-wizard"
-import { getUserProjects } from "@/lib/projects/service"
-import { requireSession } from "@/lib/session"
+import { getOrganizationProjects } from "@/lib/projects/service"
+import { requireDashboardContext } from "@/lib/organizations/service"
 
 export const metadata: Metadata = {
   title: "Submissions",
 }
 
 export default async function DashboardSubmissionsPage() {
-  const session = await requireSession()
-  const projects = await getUserProjects(session.user.id)
+  const context = await requireDashboardContext("/dashboard/submissions")
+  const projects = await getOrganizationProjects({
+    organizationId: context.activeOrganization.id,
+    userId: context.session.user.id,
+    role: context.activeMember.role,
+  })
   const recentProjects = projects.slice(0, 2)
 
   return (
@@ -22,6 +26,9 @@ export default async function DashboardSubmissionsPage() {
           Create the listing now, then let the platform generate and store the live preview in the
           background. You only need the public URL, a tight description, and the AI stack that powers the product.
         </p>
+        <p className="text-sm text-muted-foreground">
+          New submissions are created inside {context.activeOrganization.name}.
+        </p>
       </section>
 
       <SubmissionWizard />
@@ -31,13 +38,13 @@ export default async function DashboardSubmissionsPage() {
           <div>
             <h2 className="text-2xl font-semibold tracking-[-0.04em]">Recent submissions</h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              The most recent projects from your workspace, including anything still processing.
+              The most recent projects from {context.activeOrganization.name}, including anything still processing.
             </p>
           </div>
         </div>
 
         {recentProjects.length > 0 ? (
-          <div className="grid gap-5 xl:grid-cols-2">
+          <div className="grid gap-5 xl:grid-cols-3">
             {recentProjects.map((project) => (
               <DashboardProjectCard key={project.id} project={project} />
             ))}

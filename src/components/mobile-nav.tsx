@@ -12,7 +12,8 @@ import {
   UserRound,
 } from "lucide-react"
 
-import { siteContent } from "@/content/site"
+import { getSiteContent } from "@/content/site"
+import { useI18n } from "@/lib/i18n/provider"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -25,6 +26,8 @@ import {
 
 export function MobileNav({ authenticated = false }: { authenticated?: boolean }) {
   const [open, setOpen] = useState(false)
+  const { locale, t } = useI18n()
+  const siteContent = getSiteContent(locale)
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -33,7 +36,7 @@ export function MobileNav({ authenticated = false }: { authenticated?: boolean }
           <Button
             variant="outline"
             size="icon-sm"
-            aria-label="Open navigation"
+            aria-label={t("common.openNavigation")}
             className="bg-background hover:bg-muted dark:bg-secondary dark:hover:bg-muted"
           />
         }
@@ -76,7 +79,7 @@ export function MobileNav({ authenticated = false }: { authenticated?: boolean }
                   >
                     <span className="inline-flex items-center gap-3">
                       <LayoutGrid className="size-4 text-muted-foreground" />
-                      Dashboard
+                      {t("common.dashboard")}
                     </span>
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </Link>
@@ -87,7 +90,7 @@ export function MobileNav({ authenticated = false }: { authenticated?: boolean }
                   >
                     <span className="inline-flex items-center gap-3">
                       <UserRound className="size-4 text-muted-foreground" />
-                      Account
+                      {t("common.account")}
                     </span>
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </Link>
@@ -98,7 +101,7 @@ export function MobileNav({ authenticated = false }: { authenticated?: boolean }
                   >
                     <span className="inline-flex items-center gap-3">
                       <Plus className="size-4 text-muted-foreground" />
-                      Submit a product
+                      {t("common.submitProduct")}
                     </span>
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </Link>
@@ -112,7 +115,7 @@ export function MobileNav({ authenticated = false }: { authenticated?: boolean }
                   >
                     <span className="inline-flex items-center gap-3">
                       <LogIn className="size-4 text-muted-foreground" />
-                      Sign in
+                      {t("common.signIn")}
                     </span>
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </Link>
@@ -123,7 +126,7 @@ export function MobileNav({ authenticated = false }: { authenticated?: boolean }
                   >
                     <span className="inline-flex items-center gap-3">
                       <UserRound className="size-4 text-muted-foreground" />
-                      Create account
+                      {t("common.createAccount")}
                     </span>
                     <ChevronRight className="size-4 text-muted-foreground" />
                   </Link>
@@ -137,7 +140,7 @@ export function MobileNav({ authenticated = false }: { authenticated?: boolean }
               >
                 <span className="inline-flex items-center gap-3">
                   <Mail className="size-4 text-muted-foreground" />
-                  Contact
+                  {t("common.contact")}
                 </span>
                 <ChevronRight className="size-4 text-muted-foreground" />
               </Link>

@@ -1,11 +1,18 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter"
 import { betterAuth } from "better-auth"
 import { nextCookies } from "better-auth/next-js"
+import { organization } from "better-auth/plugins/organization"
 import { twoFactor } from "better-auth/plugins/two-factor"
 
 import { db } from "@/lib/db"
 import * as schema from "@/lib/db/schema"
-import { sendPasswordResetEmail, sendTwoFactorOtpEmail, sendVerificationEmail, sendWelcomeEmail } from "@/lib/email"
+import {
+  sendOrganizationInvitationEmail,
+  sendPasswordResetEmail,
+  sendTwoFactorOtpEmail,
+  sendVerificationEmail,
+  sendWelcomeEmail,
+} from "@/lib/email"
 import { env } from "@/lib/env"
 
 export const auth = betterAuth({
@@ -82,6 +89,24 @@ export const auth = betterAuth({
   },
   plugins: [
     nextCookies(),
+    organization({
+      allowUserToCreateOrganization: true,
+      organizationLimit: undefined,
+      membershipLimit: 100000,
+      invitationLimit: 100000,
+      requireEmailVerificationOnInvitation: true,
+      cancelPendingInvitationsOnReInvite: true,
+      disableOrganizationDeletion: true,
+      sendInvitationEmail: async ({ id, email, inviter, organization, role }) => {
+        await sendOrganizationInvitationEmail({
+          email,
+          inviterName: inviter.user.name,
+          organizationName: organization.name,
+          role,
+          url: `${env.BETTER_AUTH_URL}/accept-invite?id=${encodeURIComponent(id)}`,
+        })
+      },
+    }),
     twoFactor({
       issuer: env.APP_NAME,
       otpOptions: {

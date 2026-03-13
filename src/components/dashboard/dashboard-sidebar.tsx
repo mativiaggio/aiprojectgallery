@@ -3,12 +3,17 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  Atom,
+  Bookmark,
   FolderKanban,
   LayoutGrid,
   LifeBuoy,
+  Orbit,
   Newspaper,
   Send,
   Settings2,
+  Telescope,
+  Users2,
 } from "lucide-react"
 
 import {
@@ -23,12 +28,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useI18n } from "@/lib/i18n/provider"
 
 type DashboardSidebarProps = {
   user: {
     name: string
     email: string
   }
+  activeOrganization: {
+    id: string
+    name: string
+    slug: string
+  } | null
 }
 
 const primaryItems = [
@@ -50,9 +61,39 @@ const primaryItems = [
     icon: Send,
     match: (pathname: string) => pathname.startsWith("/dashboard/submissions"),
   },
+  {
+    href: "/dashboard/collections",
+    label: "Collections",
+    icon: Bookmark,
+    match: (pathname: string) => pathname.startsWith("/dashboard/collections"),
+  },
+  {
+    href: "/dashboard/intelligence",
+    label: "Intelligence",
+    icon: Telescope,
+    match: (pathname: string) => pathname.startsWith("/dashboard/intelligence"),
+  },
+  {
+    href: "/dashboard/genome",
+    label: "Genome",
+    icon: Atom,
+    match: (pathname: string) => pathname.startsWith("/dashboard/genome"),
+  },
+  {
+    href: "/dashboard/time-machine",
+    label: "Time Machine",
+    icon: Orbit,
+    match: (pathname: string) => pathname.startsWith("/dashboard/time-machine"),
+  },
 ]
 
 const secondaryItems = [
+  {
+    href: "/dashboard/organization",
+    label: "Organization",
+    icon: Users2,
+    match: (pathname: string) => pathname.startsWith("/dashboard/organization"),
+  },
   {
     href: "/dashboard/account",
     label: "Account",
@@ -73,8 +114,9 @@ const secondaryItems = [
   },
 ]
 
-export function DashboardSidebar({ user }: DashboardSidebarProps) {
+export function DashboardSidebar({ user, activeOrganization }: DashboardSidebarProps) {
   const pathname = usePathname()
+  const { t } = useI18n()
 
   return (
     <Sidebar>
@@ -88,10 +130,10 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
           </span>
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold tracking-[-0.03em]">
-              Dashboard
+              {t("common.dashboard")}
             </div>
             <div className="truncate text-sm text-muted-foreground">
-              Internal workspace
+              {activeOrganization?.name ?? t("dashboard.sidebar.subtitleFallback")}
             </div>
           </div>
         </Link>
@@ -99,7 +141,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
 
       <SidebarContent className="gap-6">
         <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("dashboard.sidebar.workspace")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {primaryItems.map((item) => (
@@ -107,7 +149,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                   <SidebarMenuButton asChild isActive={item.match(pathname)}>
                     <Link href={item.href}>
                       <item.icon className="size-4 shrink-0" />
-                      <span>{item.label}</span>
+                      <span>{translateSidebarPrimary(item.href, t)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -117,7 +159,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Access</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("dashboard.sidebar.access")}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {secondaryItems.map((item) => (
@@ -125,7 +167,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
                   <SidebarMenuButton asChild isActive={item.match(pathname)}>
                     <Link href={item.href}>
                       <item.icon className="size-4 shrink-0" />
-                      <span>{item.label}</span>
+                      <span>{translateSidebarSecondary(item.href, t)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -143,4 +185,46 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       </SidebarFooter>
     </Sidebar>
   )
+}
+
+function translateSidebarPrimary(
+  href: string,
+  t: <T = string>(key: import("@/lib/i18n").TranslationKey) => T
+) {
+  switch (href) {
+    case "/dashboard":
+      return t("dashboard.sidebar.overview")
+    case "/dashboard/projects":
+      return t("dashboard.sidebar.projects")
+    case "/dashboard/submissions":
+      return t("dashboard.sidebar.submissions")
+    case "/dashboard/collections":
+      return t("dashboard.sidebar.collections")
+    case "/dashboard/intelligence":
+      return t("dashboard.sidebar.intelligence")
+    case "/dashboard/genome":
+      return t("dashboard.sidebar.genome")
+    case "/dashboard/time-machine":
+      return t("dashboard.sidebar.timeMachine")
+    default:
+      return href
+  }
+}
+
+function translateSidebarSecondary(
+  href: string,
+  t: <T = string>(key: import("@/lib/i18n").TranslationKey) => T
+) {
+  switch (href) {
+    case "/dashboard/organization":
+      return t("dashboard.sidebar.organization")
+    case "/dashboard/account":
+      return t("dashboard.sidebar.account")
+    case "/contact":
+      return t("dashboard.sidebar.support")
+    case "/":
+      return t("dashboard.sidebar.portal")
+    default:
+      return href
+  }
 }

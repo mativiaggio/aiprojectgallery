@@ -1,3 +1,13 @@
+export { AI_TOOL_SUGGESTIONS } from "@/lib/projects/ai-tools"
+export {
+  BUYER_TYPE_OPTIONS,
+  DEPLOYMENT_SURFACE_OPTIONS,
+  INTERACTION_MODEL_OPTIONS,
+  MODEL_VENDOR_MIX_OPTIONS,
+  PRICING_VISIBILITY_OPTIONS,
+  PRIMARY_USE_CASE_OPTIONS,
+} from "@/lib/research/constants"
+
 export const PROJECT_STATUS = {
   processing: "processing",
   published: "published",
@@ -13,6 +23,12 @@ export type SubmissionPayload = {
   repositoryUrl?: string
   aiTools: string[]
   tags: string[]
+  primaryUseCase?: string
+  buyerType?: string
+  interactionModel?: string
+  pricingVisibility?: string
+  deploymentSurface?: string
+  modelVendorMix?: string
 }
 
 export type ProjectUpdatePayload = SubmissionPayload
@@ -28,7 +44,18 @@ export type ProjectOwnershipState = {
 
 export type SubmissionFieldErrors = Partial<
   Record<
-    "name" | "shortDescription" | "appUrl" | "repositoryUrl" | "aiTools" | "tags",
+    | "name"
+    | "shortDescription"
+    | "appUrl"
+    | "repositoryUrl"
+    | "aiTools"
+    | "tags"
+    | "primaryUseCase"
+    | "buyerType"
+    | "interactionModel"
+    | "pricingVisibility"
+    | "deploymentSurface"
+    | "modelVendorMix",
     string
   >
 >
@@ -50,19 +77,6 @@ export type SubmissionResult =
       message: string
       fieldErrors?: SubmissionFieldErrors
     }
-
-export const AI_TOOL_SUGGESTIONS = [
-  "GPT-4.1",
-  "GPT-4o",
-  "o3-mini",
-  "Claude 3.7 Sonnet",
-  "Claude 3.5 Sonnet",
-  "Gemini 2.5 Pro",
-  "Flux Pro",
-  "Midjourney",
-  "Runway",
-  "ElevenLabs",
-] as const
 
 export const PROJECT_TAG_SUGGESTIONS = [
   "Productivity",

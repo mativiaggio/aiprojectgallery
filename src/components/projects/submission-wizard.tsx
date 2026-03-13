@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, ExternalLink, Sparkles } from "lucide-react"
 import { ProjectImage } from "@/components/projects/project-image"
 import { LinkButton } from "@/components/link-button"
 import { ProjectStatusBadge } from "@/components/projects/project-status-badge"
+import { ProjectStructuredFields } from "@/components/projects/project-structured-fields"
 import { TokenField } from "@/components/projects/token-field"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -62,6 +63,12 @@ export function SubmissionWizard() {
     repositoryUrl: "",
     aiTools: [],
     tags: [],
+    primaryUseCase: undefined,
+    buyerType: undefined,
+    interactionModel: undefined,
+    pricingVisibility: undefined,
+    deploymentSurface: undefined,
+    modelVendorMix: undefined,
   })
   const [fieldErrors, setFieldErrors] = useState<SubmissionFieldErrors>({})
   const [message, setMessage] = useState<string | null>(null)
@@ -285,6 +292,19 @@ export function SubmissionWizard() {
                 error={fieldErrors.tags}
               />
 
+              <ProjectStructuredFields
+                value={{
+                  primaryUseCase: form.primaryUseCase,
+                  buyerType: form.buyerType,
+                  interactionModel: form.interactionModel,
+                  pricingVisibility: form.pricingVisibility,
+                  deploymentSurface: form.deploymentSurface,
+                  modelVendorMix: form.modelVendorMix,
+                }}
+                onChange={updateField}
+                errors={fieldErrors}
+              />
+
               <div className="rounded-[1.2rem] border bg-muted/25 p-5">
                 <div className="text-sm font-medium">Submission summary</div>
                 <div className="mt-4 space-y-4">
@@ -307,6 +327,22 @@ export function SubmissionWizard() {
                     <SummaryBlock
                       label="Tags"
                       value={form.tags.length > 0 ? form.tags.join(", ") : "Optional but recommended"}
+                    />
+                    <SummaryBlock
+                      label="Use case"
+                      value={form.primaryUseCase || "Can be inferred later"}
+                    />
+                    <SummaryBlock
+                      label="Buyer"
+                      value={form.buyerType || "Can be inferred later"}
+                    />
+                    <SummaryBlock
+                      label="Interaction"
+                      value={form.interactionModel || "Can be inferred later"}
+                    />
+                    <SummaryBlock
+                      label="Pricing"
+                      value={form.pricingVisibility || "Can be inferred later"}
                     />
                   </div>
                 </div>

@@ -5,11 +5,13 @@ import { useState } from "react"
 import { LogOut } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
+import { useI18n } from "@/lib/i18n/provider"
 import { Button } from "@/components/ui/button"
 
 export function AccountActions() {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
+  const { t } = useI18n()
 
   return (
     <div className="flex flex-col gap-3">
@@ -33,7 +35,7 @@ export function AccountActions() {
         disabled={isPending}
       >
         <LogOut className="size-4" />
-        {isPending ? "Signing out..." : "Sign out"}
+        {isPending ? t("dashboard.userMenu.signingOut") : t("dashboard.userMenu.signOut")}
       </Button>
     </div>
   )

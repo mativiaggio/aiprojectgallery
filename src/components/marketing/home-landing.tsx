@@ -1,10 +1,9 @@
 import Link from "next/link"
 import { ArrowRightIcon } from "lucide-react"
 
-import { ProjectImage } from "@/components/projects/project-image"
+import { AiToolsShowcase } from "@/components/marketing/ai-tools-showcase"
 import { PublicProjectCard } from "@/components/projects/public-project-card"
 import { LinkButton } from "@/components/link-button"
-import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -12,7 +11,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { siteContent } from "@/content/site"
+import { getSiteContent } from "@/content/site"
+import { getI18n } from "@/lib/i18n/server"
 
 type HomeLandingProps = {
   projects: Array<{
@@ -29,13 +29,14 @@ type HomeLandingProps = {
   }>
 }
 
-export function HomeLanding({ projects }: HomeLandingProps) {
-  const featuredProject = projects[0] ?? null
+export async function HomeLanding({ projects }: HomeLandingProps) {
+  const { locale } = await getI18n()
+  const siteContent = getSiteContent(locale)
   const recentProjects = projects.slice(0, 6)
 
   return (
     <div className="px-4 py-10 sm:px-6 sm:py-14">
-      <section className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:items-start">
+      <section className="mx-auto max-w-7xl flex flex-col">
         <div className="flex flex-col gap-8 lg:pr-6">
           <div className="flex flex-col gap-6 border-b pb-8">
             <h1 className="max-w-4xl text-5xl font-semibold tracking-[-0.065em] text-balance sm:text-6xl lg:text-[4.35rem] lg:leading-[0.98]">
@@ -54,12 +55,15 @@ export function HomeLanding({ projects }: HomeLandingProps) {
               Submit your product
               <ArrowRightIcon data-icon="inline-end" />
             </LinkButton>
+            <LinkButton href="/research" variant="outline" size="lg">
+              Open research
+            </LinkButton>
             <LinkButton href="/about" variant="outline" size="lg">
               Read how the gallery works
             </LinkButton>
           </div>
 
-          <div className="grid gap-0 border sm:grid-cols-3">
+          <div className="grid gap-0 border sm:grid-cols-3 rounded-2xl">
             <InfoColumn
               title="Live products"
               description="Only public launches with real URLs and usable screenshots make it into the catalog."
@@ -74,88 +78,9 @@ export function HomeLanding({ projects }: HomeLandingProps) {
             />
           </div>
         </div>
-
-        <div className="overflow-hidden border bg-card">
-          {featuredProject ? (
-            <>
-              <div className="border-b p-5 sm:p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="max-w-sm">
-                    <div className="text-sm font-medium">Latest published entry</div>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                      A real submission from the live catalog, complete with generated preview and stack metadata.
-                    </p>
-                  </div>
-                  <Badge variant="outline">Live</Badge>
-                </div>
-                <div className="mt-6 overflow-hidden rounded-[1.1rem] border bg-panel">
-                  {featuredProject.screenshotUrl ? (
-                    <ProjectImage
-                      src={featuredProject.screenshotUrl}
-                      alt={`${featuredProject.name} screenshot`}
-                      className="w-full object-cover"
-                    />
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="grid lg:grid-cols-[minmax(0,1fr)_15rem]">
-                <div className="border-b p-5 sm:p-6 lg:border-r lg:border-b-0">
-                  <div className="text-2xl font-semibold tracking-[-0.05em]">
-                    {featuredProject.name}
-                  </div>
-                  <p className="mt-3 max-w-lg text-sm leading-7 text-muted-foreground">
-                    {featuredProject.shortDescription}
-                  </p>
-                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                    <DetailRow label="Production URL" value={featuredProject.appUrl} />
-                    <DetailRow
-                      label="AI tools"
-                      value={featuredProject.aiTools.join(" + ") || "Stack pending"}
-                    />
-                    <DetailRow
-                      label="Tags"
-                      value={featuredProject.tags.join(" · ") || "Gallery"}
-                    />
-                    <DetailRow label="Author" value={featuredProject.authorName} />
-                  </div>
-                </div>
-
-                <div className="p-5 sm:p-6">
-                  <div className="text-sm font-medium">Why it reads well</div>
-                  <div className="mt-5 space-y-5">
-                    <MetricBlock
-                      label="Preview first"
-                      value="Screenshot-led card"
-                      description="People can judge launch quality before they commit to another click."
-                    />
-                    <MetricBlock
-                      label="Context"
-                      value="Tools + tags"
-                      description="The technical layer stays attached to the project instead of buried in a detail drawer."
-                    />
-                    <MetricBlock
-                      label="Visibility"
-                      value="Published only"
-                      description="Processing and failed submissions stay out of public view until the listing is complete."
-                    />
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="p-6 sm:p-8">
-              <div className="max-w-lg">
-                <div className="text-sm font-medium">The gallery is ready</div>
-                <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                  The public grid turns on as soon as the first submission finishes its screenshot pipeline.
-                  Submit a live product to seed the catalog and define the early quality bar.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
       </section>
+
+      <AiToolsShowcase projects={projects}/>
 
       <section className="mx-auto mt-24 grid max-w-7xl gap-12 lg:grid-cols-[0.9fr_1.1fr]">
         <div className="flex flex-col gap-8">
@@ -259,6 +184,9 @@ export function HomeLanding({ projects }: HomeLandingProps) {
               Submit your product
               <ArrowRightIcon data-icon="inline-end" />
             </LinkButton>
+            <LinkButton href="/pulse" variant="outline" size="lg">
+              Browse pulse
+            </LinkButton>
             <LinkButton href="/pricing" variant="outline" size="lg">
               View pricing
             </LinkButton>
@@ -274,33 +202,6 @@ function InfoColumn({ title, description }: { title: string; description: string
     <div className="border-b p-5 sm:border-r sm:border-b-0 sm:p-6 sm:last:border-r-0">
       <div className="text-base font-medium tracking-[-0.03em]">{title}</div>
       <p className="mt-3 max-w-xs text-sm leading-7 text-muted-foreground">{description}</p>
-    </div>
-  )
-}
-
-function MetricBlock({
-  label,
-  value,
-  description,
-}: {
-  label: string
-  value: string
-  description: string
-}) {
-  return (
-    <div className="border-b pb-5 last:border-b-0 last:pb-0">
-      <div className="text-sm text-muted-foreground">{label}</div>
-      <div className="mt-2 text-base font-medium tracking-[-0.03em]">{value}</div>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
-    </div>
-  )
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="space-y-1 border-t pt-4 first:border-t-0 first:pt-0">
-      <div className="text-sm text-muted-foreground">{label}</div>
-      <div className="text-sm font-medium leading-6">{value}</div>
     </div>
   )
 }

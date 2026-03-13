@@ -2,12 +2,17 @@ import { Resend } from "resend"
 
 import { env } from "@/lib/env"
 
-const resend = new Resend(env.RESEND_API_KEY)
 const RESEND_TEST_FROM_EMAIL = "onboarding@resend.dev"
+const resendConfigured = Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL)
+const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : null
 const resendFromEmail =
-  env.NODE_ENV !== "production" && /@example\.com\b/i.test(env.RESEND_FROM_EMAIL)
+  env.RESEND_FROM_EMAIL &&
+  env.NODE_ENV !== "production" &&
+  /@example\.com\b/i.test(env.RESEND_FROM_EMAIL)
     ? `${env.APP_NAME} <${RESEND_TEST_FROM_EMAIL}>`
     : env.RESEND_FROM_EMAIL
+let hasLoggedMissingResendConfig = false
+let hasLoggedInvalidResendSender = false
 
 // if (resendFromEmail !== env.RESEND_FROM_EMAIL) {
 //   console.warn(
@@ -102,6 +107,28 @@ async function sendEmail({
   subject: string
   html: string
 }) {
+  if (!resendConfigured || !resend || !resendFromEmail) {
+    if (!hasLoggedMissingResendConfig) {
+      console.warn(
+        "[resend] Email delivery is disabled because RESEND_API_KEY or RESEND_FROM_EMAIL is not configured."
+      )
+      hasLoggedMissingResendConfig = true
+    }
+
+    return
+  }
+
+  if (
+    env.NODE_ENV === "production" &&
+    /@example\.com\b/i.test(resendFromEmail) &&
+    !hasLoggedInvalidResendSender
+  ) {
+    console.warn(
+      "[resend] RESEND_FROM_EMAIL uses an example.com sender in production. Email delivery may fail until a verified sender is configured."
+    )
+    hasLoggedInvalidResendSender = true
+  }
+
   const result = await resend.emails.send({
     from: resendFromEmail,
     to,
@@ -138,9 +165,9 @@ export async function sendWelcomeEmail({
       preview: `Welcome to ${env.APP_NAME}`,
       title: `Welcome, ${name}`,
       intro: "Your account is ready.",
-      body: "You can now manage your profile, secure your account with two-factor authentication, and keep your submission preferences in one place.",
-      ctaHref: `${env.BETTER_AUTH_URL}/account`,
-      ctaLabel: "Open your account",
+      body: "You can now manage your account, secure it with two-factor authentication, and join or create shared workspaces in the dashboard.",
+      ctaHref: `${env.BETTER_AUTH_URL}/dashboard`,
+      ctaLabel: "Open dashboard",
       outro: "If you did not create this account, you should reset your password immediately.",
     }),
   })
@@ -213,5 +240,74 @@ export async function sendTwoFactorOtpEmail({
       body: `Your verification code is ${otp}. Enter it in the security prompt to finish signing in.`,
       outro: "The code expires quickly. If it expires, request a new one from the sign-in flow.",
     }),
+  })
+}
+
+export async function sendOrganizationInvitationEmail({
+  email,
+  inviterName,
+  organizationName,
+  role,
+  url,
+}: {
+  email: string
+  inviterName: string
+  organizationName: string
+  role: string
+  url: string
+}) {
+  await sendEmail({
+    to: email,
+    subject: `Invitation to join ${organizationName}`,
+    html: renderEmailTemplate({
+      preview: `Join ${organizationName} on ${env.APP_NAME}`,
+      title: "Organization invitation",
+      intro: `${inviterName} invited you to join ${organizationName}.`,
+      body: `Open the invitation link to join the organization as ${role}. If you do not have an account yet, sign up with this same email address and return to the invitation link after verifying your email.`,
+      ctaHref: url,
+      ctaLabel: "Review invitation",
+      outro: "The invitation expires automatically. If the link no longer works, ask the sender to issue a new invite.",
+    }),
+  })
+}
+
+export async function sendWeeklyDigestEmail({
+  email,
+  name,
+  changes,
+}: {
+  email: string
+  name: string
+  changes: Array<{
+    title: string
+    detail: string
+    projectName: string
+    href: string
+    detectedAt: string
+  }>
+}) {
+  const introLine = changes[0]
+    ? `${changes[0].projectName}: ${changes[0].title}`
+    : "A weekly digest is ready."
+  const body = changes
+    .slice(0, 6)
+    .map((change) => {
+      const dateLabel = new Date(change.detectedAt).toLocaleDateString()
+      return `${change.projectName} (${dateLabel}) - ${change.title}. ${change.detail}`
+    })
+    .join("\n")
+
+  await sendEmail({
+    to: email,
+    subject: `${env.APP_NAME} weekly research digest`,
+    html: renderEmailTemplate({
+      preview: `${name}, your weekly research digest is ready`,
+      title: "Weekly research digest",
+      intro: `${name}, here are the most notable changes captured across the gallery this week.`,
+      body: `${introLine}\n\n${body}`,
+      ctaHref: `${env.BETTER_AUTH_URL}/pulse`,
+      ctaLabel: "Open pulse feed",
+      outro: "You can manage digest preferences from your account settings.",
+    }).replaceAll("\n", "<br />"),
   })
 }

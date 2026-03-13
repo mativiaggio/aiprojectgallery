@@ -4,6 +4,11 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import {
+  clearPendingCallbackURL,
+  storePendingCallbackURL,
+  withCallbackURL,
+} from "@/lib/auth/callback-url"
 import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,11 +27,13 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useI18n } from "@/lib/i18n/provider"
 
-export function SignInForm() {
+export function SignInForm({ callbackURL }: { callbackURL: string }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
+  const { t } = useI18n()
 
   async function handleSubmit(formData: FormData) {
     setIsPending(true)
@@ -35,16 +42,17 @@ export function SignInForm() {
     try {
       const email = String(formData.get("email") ?? "")
       const password = String(formData.get("password") ?? "")
+      storePendingCallbackURL(callbackURL)
 
       const { data, error: signInError } = await authClient.signIn.email({
         email,
         password,
-        callbackURL: "/account",
+        callbackURL,
         rememberMe: true,
       })
 
       if (signInError) {
-        throw new Error(signInError.message || "Unable to sign in.")
+        throw new Error(signInError.message || t("auth.forms.signIn.error"))
       }
 
       if (
@@ -56,11 +64,12 @@ export function SignInForm() {
         return
       }
 
-      router.replace("/account")
+      clearPendingCallbackURL()
+      router.replace(callbackURL)
       router.refresh()
     } catch (caughtError) {
       setError(
-        caughtError instanceof Error ? caughtError.message : "Unable to sign in."
+        caughtError instanceof Error ? caughtError.message : t("auth.forms.signIn.error")
       )
     } finally {
       setIsPending(false)
@@ -70,10 +79,9 @@ export function SignInForm() {
   return (
     <Card className="py-0">
       <CardHeader className="border-b py-5">
-        <CardTitle>Sign in</CardTitle>
+        <CardTitle>{t("auth.forms.signIn.cardTitle")}</CardTitle>
         <CardDescription>
-          Use your email and password. If two-factor is active, the flow will continue
-          in the next step.
+          {t("auth.forms.signIn.cardDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent className="py-5">
@@ -83,13 +91,13 @@ export function SignInForm() {
             await handleSubmit(formData)
           }}
         >
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="email">Email</FieldLabel>
+            <FieldGroup>
+              <Field>
+              <FieldLabel htmlFor="email">{t("auth.forms.signIn.email")}</FieldLabel>
               <Input id="email" name="email" type="email" autoComplete="email" required />
             </Field>
             <Field>
-              <FieldLabel htmlFor="password">Password</FieldLabel>
+              <FieldLabel htmlFor="password">{t("auth.forms.signIn.password")}</FieldLabel>
               <Input
                 id="password"
                 name="password"
@@ -98,23 +106,29 @@ export function SignInForm() {
                 required
               />
               <FieldDescription>
-                Forgot it?{" "}
-                <Link href="/auth/forgot-password" className="underline underline-offset-4">
-                  Reset password
+                {t("auth.forms.signIn.forgotPrefix")}{" "}
+                <Link
+                  href={withCallbackURL("/auth/forgot-password", callbackURL)}
+                  className="underline underline-offset-4"
+                >
+                  {t("auth.forms.signIn.forgotLink")}
                 </Link>
               </FieldDescription>
             </Field>
           </FieldGroup>
           {error ? <FieldError>{error}</FieldError> : null}
           <Button type="submit" size="lg" disabled={isPending}>
-            {isPending ? "Signing in..." : "Sign in"}
+            {isPending ? t("auth.forms.signIn.pending") : t("auth.forms.signIn.submit")}
           </Button>
         </form>
       </CardContent>
       <CardFooter className="justify-between">
-        <span className="text-sm text-muted-foreground">No account yet?</span>
-        <Link href="/auth/sign-up" className="text-sm font-medium hover:underline">
-          Create account
+        <span className="text-sm text-muted-foreground">{t("auth.forms.signIn.emptyState")}</span>
+        <Link
+          href={withCallbackURL("/auth/sign-up", callbackURL)}
+          className="text-sm font-medium hover:underline"
+        >
+          {t("auth.forms.signIn.alternate")}
         </Link>
       </CardFooter>
     </Card>

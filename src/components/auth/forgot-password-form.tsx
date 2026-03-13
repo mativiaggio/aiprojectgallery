@@ -19,11 +19,13 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useI18n } from "@/lib/i18n/provider"
 
 export function ForgotPasswordForm() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
+  const { t } = useI18n()
 
   async function handleSubmit(formData: FormData) {
     setIsPending(true)
@@ -41,12 +43,12 @@ export function ForgotPasswordForm() {
         },
       })
 
-      setNotice("If the account exists, a reset email has been sent.")
+      setNotice(t("auth.forms.forgotPassword.notice"))
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
           ? caughtError.message
-          : "Unable to start password reset."
+          : t("auth.forms.forgotPassword.error")
       )
     } finally {
       setIsPending(false)
@@ -56,10 +58,9 @@ export function ForgotPasswordForm() {
   return (
     <Card className="py-0">
       <CardHeader className="border-b py-5">
-        <CardTitle>Reset password</CardTitle>
+        <CardTitle>{t("auth.forms.forgotPassword.cardTitle")}</CardTitle>
         <CardDescription>
-          A secure email will let you create a new password without exposing whether an
-          address exists.
+          {t("auth.forms.forgotPassword.cardDescription")}
         </CardDescription>
       </CardHeader>
       <CardContent className="py-5">
@@ -69,12 +70,12 @@ export function ForgotPasswordForm() {
             await handleSubmit(formData)
           }}
         >
-          <FieldGroup>
-            <Field>
-              <FieldLabel htmlFor="email">Email</FieldLabel>
+            <FieldGroup>
+              <Field>
+              <FieldLabel htmlFor="email">{t("auth.forms.forgotPassword.email")}</FieldLabel>
               <Input id="email" name="email" type="email" autoComplete="email" required />
               <FieldDescription>
-                The reset link opens a dedicated page where the password can be replaced.
+                {t("auth.forms.forgotPassword.fieldDescription")}
               </FieldDescription>
             </Field>
           </FieldGroup>
@@ -85,7 +86,7 @@ export function ForgotPasswordForm() {
             </p>
           ) : null}
           <Button type="submit" size="lg" disabled={isPending}>
-            {isPending ? "Sending..." : "Send reset email"}
+            {isPending ? t("auth.forms.forgotPassword.pending") : t("auth.forms.forgotPassword.submit")}
           </Button>
         </form>
       </CardContent>

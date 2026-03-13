@@ -29,8 +29,39 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deploy on Railway
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This repo includes a [`railway.toml`](/C:/Users/matia/side-projects/aiprojectgallery/railway.toml) tuned for a single web service plus Railway Postgres on the Free plan.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Minimum Railway variables for the web service:
+
+```bash
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+BETTER_AUTH_SECRET=replace-with-a-32-char-secret
+BETTER_AUTH_URL=https://your-domain.up.railway.app
+NEXT_PUBLIC_APP_URL=${{BETTER_AUTH_URL}}
+RAILPACK_NODE_VERSION=20
+NEXT_TELEMETRY_DISABLED=1
+```
+
+Optional lean-mode variables:
+
+```bash
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+UPLOADTHING_TOKEN=
+UPLOADTHING_SECRET=
+UPLOADTHING_APP_ID=
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-5-mini
+GITHUB_TOKEN=
+CRON_SECRET=
+```
+
+Deploy flow:
+
+1. Create a Railway project with one web service and one Postgres service.
+2. Set the variables above on the web service.
+3. Deploy the repo. Railway will run `pnpm build`, then `pnpm db:generate && pnpm db:migrate`, and finally start the standalone Next server.
+4. Add a Railway public domain or custom domain and make sure `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` point to the final HTTPS URL.
+5. Keep `sleepApplication` enabled for the lowest idle footprint on Free.

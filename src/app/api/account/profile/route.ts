@@ -28,7 +28,6 @@ export async function PATCH(request: Request) {
       location: body.location?.trim() || null,
       website: body.website?.trim() || null,
       bio: body.bio?.trim() || null,
-      onboardingCompleted: true,
       updatedAt: new Date(),
     })
     .onConflictDoUpdate({
@@ -39,7 +38,6 @@ export async function PATCH(request: Request) {
         location: body.location?.trim() || null,
         website: body.website?.trim() || null,
         bio: body.bio?.trim() || null,
-        onboardingCompleted: true,
         updatedAt: new Date(),
       },
     })
